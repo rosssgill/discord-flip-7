@@ -43,10 +43,11 @@ Unverified Activities only work for the app's developer team and app testers, in
 ## Deploying
 
 ```sh
+pnpm exec wrangler login
 pnpm exec wrangler secret put DISCORD_CLIENT_ID
 pnpm exec wrangler secret put DISCORD_CLIENT_SECRET
 pnpm exec wrangler secret put DISCORD_BOT_TOKEN   # only needed with ALLOWED_GUILD_IDS
-pnpm deploy
+pnpm run deploy                                   # not `pnpm deploy`, which is a built-in pnpm command
 ```
 
 Then map `/` to the deployed `*.workers.dev` host in the URL Mappings.
