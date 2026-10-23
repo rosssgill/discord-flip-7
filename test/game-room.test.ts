@@ -194,6 +194,29 @@ describe("GameRoom", () => {
   });
 });
 
+describe("after a game", () => {
+  it("lets a spectator start a new game after everyone else has left", async () => {
+    const instance = newInstance();
+    const a = await player(instance, 1);
+    const b = await player(instance, 2);
+    a.send({ type: "join" });
+    b.send({ type: "join" });
+    await a.next("state", (m) => m.game.players.length === 2);
+    a.send({ type: "start" });
+    await b.next("state", (m) => m.game.phase === "playing");
+
+    b.send({ type: "leave" });
+    const over = await b.next("state", (m) => m.game.phase === "gameOver");
+    expect(over.game.winners).toEqual(["mock-1"]);
+    a.ws.close();
+
+    b.send({ type: "newGame" });
+    // Only the post-game lobby has a champion, which skips lobby states from before the game.
+    const lobby = await b.next("state", (m) => m.game.phase === "lobby" && m.game.champion === "mock-1");
+    expect(lobby.game.players).toEqual([]);
+  });
+});
+
 describe("round timer", () => {
   it("starts the next round on its own after a round ends", async () => {
     const instance = newInstance();

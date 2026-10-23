@@ -221,6 +221,16 @@ describe("game end", () => {
     expect([s.champion, s.streak]).toEqual(["B", 1]);
   });
 
+  it("lets anyone start the next game, keeping only the listed players", () => {
+    let s = game(3, [num(10), num(1), num(2)], [195, 0, 0]);
+    s = play(play(play(s, "A", { type: "stay" }), "B", { type: "stay" }), "C", { type: "stay" });
+    expect(s.phase).toBe("gameOver");
+    expect(applyAction(s, "A", { type: "leave" }, rng)).toEqual({ ok: false, error: "The game is over" });
+    s = play(s, "spectator", { type: "newGame", keep: ["B", "spectator"] });
+    expect(s.phase).toBe("lobby");
+    expect(s.players.map((x) => x.id)).toEqual(["B"]);
+  });
+
   it("plays another round on a tie", () => {
     let s = game(2, [num(10), num(10)], [190, 190]);
     s = play(play(s, "A", { type: "stay" }), "B", { type: "stay" });

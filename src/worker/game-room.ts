@@ -86,7 +86,12 @@ export class GameRoom extends DurableObject<Env> {
 
     const user = attachment.user;
     if (!user) return send(ws, { type: "error", message: "Not authenticated" });
-    const action: Action = message.type === "join" ? { type: "join", name: user.name, avatar: user.avatar } : message;
+    const action: Action =
+      message.type === "join"
+        ? { type: "join", name: user.name, avatar: user.avatar }
+        : message.type === "newGame"
+          ? { type: "newGame", keep: this.sessions().map(([, u]) => u.id) }
+          : message;
     const result = applyAction(this.room.game, user.id, action, cryptoRng);
     if (!result.ok) return send(ws, { type: "error", message: result.error });
     this.room.game = result.state;

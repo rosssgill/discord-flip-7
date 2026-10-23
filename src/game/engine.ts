@@ -70,7 +70,8 @@ export type Action =
   | { type: "stay" }
   | { type: "choose"; target: string }
   | { type: "nextRound" }
-  | { type: "newGame" };
+  /** `keep` lists who stays seated (e.g. those still connected); defaults to everyone. */
+  | { type: "newGame"; keep?: string[] };
 
 export type Result = { ok: true; state: GameState } | { ok: false; error: string };
 
@@ -149,12 +150,25 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
     s.players.push(newPlayer(playerId, action.name, action.avatar ?? null));
     return;
   }
+  // Anyone may start the next game, so a table everyone has left can't get stuck on the results screen.
+  if (action.type === "newGame") {
+    if (s.phase !== "gameOver") return "The game is not over";
+    const keep = action.keep ?? s.players.map((p) => p.id);
+    Object.assign(s, createGame(), {
+      players: s.players.filter((p) => keep.includes(p.id)).map((p) => newPlayer(p.id, p.name, p.avatar)),
+      champion: s.champion,
+      streak: s.streak,
+    });
+    return;
+  }
   if (!seated) return "You are not seated";
 
   switch (action.type) {
     case "leave":
-      if (s.phase === "playing" || s.phase === "roundOver") forfeit(s, seated, rng);
-      else s.players = s.players.filter((p) => p.id !== playerId);
+      // After the game the final standings stay put; the next game only keeps players still around.
+      if (s.phase === "gameOver") return "The game is over";
+      if (s.phase === "lobby") s.players = s.players.filter((p) => p.id !== playerId);
+      else forfeit(s, seated, rng);
       return;
 
     case "start":
@@ -170,15 +184,6 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
     case "nextRound":
       if (s.phase !== "roundOver") return "The round is not over";
       startRound(s, rng);
-      return;
-
-    case "newGame":
-      if (s.phase !== "gameOver") return "The game is not over";
-      Object.assign(s, createGame(), {
-        players: s.players.map((p) => newPlayer(p.id, p.name, p.avatar)),
-        champion: s.champion,
-        streak: s.streak,
-      });
       return;
 
     case "hit":

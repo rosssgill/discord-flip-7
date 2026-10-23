@@ -92,7 +92,7 @@
     <span>Round {game.round}</span>
     <div class="tools">
       <SpectatorBar {spectators} />
-      {#if seated}
+      {#if seated && game.phase !== "gameOver"}
         <button class="leave" class:confirming={confirmingLeave} onclick={leave}>
           {confirmingLeave ? "Forfeit" : "Leave"}
         </button>
@@ -163,7 +163,7 @@
     {/if}
     {#if game.phase === "gameOver"}
       <strong>{game.winners.map(name).join(" & ")} wins!</strong>
-      {#if seated}<button class="primary" onclick={() => send({ type: "newGame" })}>New game</button>{/if}
+      <button class="primary" onclick={() => send({ type: "newGame" })}>New game</button>
     {:else if game.phase === "roundOver"}
       <strong>Round {game.round} over</strong>
       {#if seated}<button class="primary" onclick={() => send({ type: "nextRound" })}>Next round</button>{/if}
