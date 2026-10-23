@@ -183,7 +183,7 @@
   </footer>
 
   <ol class="log">
-    {#each game.log.slice(narrow ? -2 : -6).reverse() as line}
+    {#each game.log.slice(narrow ? -2 : -6) as line}
       <li>{line}</li>
     {/each}
   </ol>
@@ -269,7 +269,7 @@
     font-size: 0.85rem;
     color: var(--muted);
   }
-  .log li:first-child {
+  .log li:last-child {
     color: inherit;
   }
 </style>
