@@ -236,7 +236,7 @@
   }
   .players {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
     gap: 0.6rem;
   }
   /* zoom (unlike transform) also shrinks layout space, and transitions read the zoomed positions. */
