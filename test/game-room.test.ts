@@ -226,6 +226,58 @@ describe("round timer", () => {
   });
 });
 
+describe("empty rooms", () => {
+  type Internals = { room: { deadline: unknown; emptySince: number | null } };
+
+  it("pauses timers while nobody is connected and resumes when someone returns", async () => {
+    const instance = newInstance();
+    const a = await player(instance, 1);
+    const b = await player(instance, 2);
+    a.send({ type: "join" });
+    b.send({ type: "join" });
+    await a.next("state", (m) => m.game.players.length === 2);
+    a.send({ type: "start" });
+    await b.next("state", (m) => m.game.phase === "playing");
+    a.ws.close();
+    await b.next("state", (m) => m.connected.length === 1);
+    b.ws.close();
+
+    const stub = env.GAME_ROOM.getByName(instance);
+    await vi.waitFor(() =>
+      runInDurableObject(stub, (room: GameRoom) => {
+        const internals = room as unknown as Internals;
+        expect(internals.room.deadline).toBeNull();
+        expect(internals.room.emptySince).not.toBeNull();
+      }),
+    );
+
+    const back = await player(instance, 1);
+    const state = await back.next("state", (m) => m.game.phase === "playing");
+    expect(state.timerMsLeft).toBeGreaterThan(14_000);
+  });
+
+  it("deletes a room's storage once it has been empty for a day", async () => {
+    const instance = newInstance();
+    const a = await player(instance, 1);
+    a.send({ type: "join" });
+    await a.next("state", (m) => m.game.players.length === 1);
+    a.ws.close();
+
+    const stub = env.GAME_ROOM.getByName(instance);
+    await vi.waitFor(() =>
+      runInDurableObject(stub, (room: GameRoom) => {
+        const internals = room as unknown as Internals;
+        expect(internals.room.emptySince).not.toBeNull();
+        internals.room.emptySince = 0;
+      }),
+    );
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    await runInDurableObject(stub, async (_room: GameRoom, state) => {
+      expect(await state.storage.get("room")).toBeUndefined();
+    });
+  });
+});
+
 describe("HTTP routes", () => {
   it("validates WebSocket upgrades and token requests", async () => {
     expect((await exports.default.fetch("https://example.com/api/ws?instance=x")).status).toBe(426);

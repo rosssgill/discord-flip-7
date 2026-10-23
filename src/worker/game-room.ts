@@ -12,6 +12,8 @@ import {
 import { allowedGuilds, getInstanceGuild, getUser } from "./discord";
 
 export const AUTH_TIMEOUT_MS = 10_000;
+/** How long a room with nobody connected keeps its state before deleting it. */
+export const IDLE_CLEANUP_MS = 24 * 60 * 60 * 1000;
 
 interface Attachment {
   user: User | null;
@@ -24,11 +26,21 @@ interface Room {
   guildChecked: boolean;
   /** When the server next acts on its own: for a player who ran out of time, or to start the next round. */
   deadline: { kind: "turn"; player: string; at: number } | { kind: "nextRound"; at: number } | null;
+  /** When the last player disconnected, or null while anyone is connected. */
+  emptySince: number | null;
 }
+
+const newRoom = (): Room => ({
+  game: createGame(),
+  instanceId: "",
+  guildChecked: false,
+  deadline: null,
+  emptySince: null,
+});
 
 /** One game per Discord Activity instance. State lives in storage so the object can hibernate between moves. */
 export class GameRoom extends DurableObject<Env> {
-  private room: Room = { game: createGame(), instanceId: "", guildChecked: false, deadline: null };
+  private room: Room = newRoom();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -91,6 +103,15 @@ export class GameRoom extends DurableObject<Env> {
 
   async alarm() {
     const now = Date.now();
+    // Discord never reuses an Activity instance ID, so a long-empty room will never be joined again.
+    const { emptySince } = this.room;
+    if (emptySince !== null && now - emptySince >= IDLE_CLEANUP_MS && this.sessions().length === 0) {
+      await this.ctx.storage.deleteAlarm();
+      await this.ctx.storage.deleteAll();
+      this.room = newRoom();
+      return;
+    }
+
     for (const ws of this.ctx.getWebSockets()) {
       const { user, connectedAt } = ws.deserializeAttachment() as Attachment;
       if (!user && ws.readyState === WebSocket.OPEN && now - connectedAt >= AUTH_TIMEOUT_MS) {
@@ -122,7 +143,11 @@ export class GameRoom extends DurableObject<Env> {
 
     const waitingOn = awaiting(this.room.game);
     const deadline = this.room.deadline;
-    if (waitingOn) {
+    if (connected.size === 0) {
+      // Nobody is here to play, so the game pauses rather than timing everyone out.
+      this.room.deadline = null;
+      this.room.emptySince ??= Date.now();
+    } else if (waitingOn) {
       if (moved || deadline?.kind !== "turn" || deadline.player !== waitingOn) {
         this.room.deadline = { kind: "turn", player: waitingOn, at: Date.now() + TURN_TIMEOUT_MS };
       }
@@ -131,6 +156,7 @@ export class GameRoom extends DurableObject<Env> {
     } else {
       this.room.deadline = null;
     }
+    if (connected.size > 0) this.room.emptySince = null;
     await this.ctx.storage.put("room", this.room);
     await this.scheduleAlarm();
 
@@ -159,6 +185,7 @@ export class GameRoom extends DurableObject<Env> {
   private async scheduleAlarm() {
     const times: number[] = [];
     if (this.room.deadline) times.push(this.room.deadline.at);
+    if (this.room.emptySince !== null) times.push(this.room.emptySince + IDLE_CLEANUP_MS);
     for (const ws of this.ctx.getWebSockets()) {
       const { user, connectedAt } = ws.deserializeAttachment() as Attachment;
       if (!user && ws.readyState === WebSocket.OPEN) times.push(connectedAt + AUTH_TIMEOUT_MS);
