@@ -1,0 +1,49 @@
+:root {
+  --bg: #1d3b2f;
+  --panel: #24493a;
+  --card-bg: #fbf8f1;
+  --text: #f2efe6;
+  --muted: #b8c7bd;
+  --accent: #f2c14e;
+  --modifier: #2a7fd4;
+  --action: #c2410c;
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1,
+h2 {
+  margin: 0 0 0.5rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--muted);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1d1d1d;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

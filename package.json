@@ -1,0 +1,38 @@
+{
+  "name": "flip-7",
+  "private": true,
+  "type": "module",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.0.0",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:discord": "DISCORD_TUNNEL=1 vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "vite build && wrangler deploy",
+    "test": "vitest run",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json",
+    "types": "wrangler types src/worker/worker-configuration.d.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.64.0",
+    "@cloudflare/vitest-plugin": "^1.4.6",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tsconfig/svelte": "^5.0.8",
+    "svelte": "^5.57.2",
+    "svelte-check": "^4.7.7",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.5",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.151.3"
+  },
+  "dependencies": {
+    "@discord/embedded-app-sdk": "^2.5.0",
+    "zod": "^4.6.7"
+  }
+}

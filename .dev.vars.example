@@ -1,0 +1,8 @@
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+# Needed only with ALLOWED_GUILD_IDS, to look up which server an Activity instance is in.
+DISCORD_BOT_TOKEN=
+# Comma-separated server IDs allowed to run the Activity; empty allows any.
+ALLOWED_GUILD_IDS=
+# Accepts "mock:<id>:<name>" tokens so you can play in several browser tabs. Never set in production.
+DEV_AUTH_BYPASS=true
