@@ -61,6 +61,15 @@ describe("dealing and turns", () => {
     expect(values(p(s, "C").numbers)).toEqual([3]);
     expect(s.stage).toBe("turns");
     expect(s.current).toBe("A");
+    expect(s.drawn).toEqual([...p(s, "A").numbers, ...p(s, "B").numbers, ...p(s, "C").numbers].map((c) => c.id));
+  });
+
+  it("records only the cards drawn by the latest action", () => {
+    let s = game(2, [num(1), num(2), num(3)]);
+    s = play(s, "A", { type: "hit" });
+    expect(s.drawn).toEqual([p(s, "A").numbers[1].id]);
+    s = play(s, "B", { type: "stay" });
+    expect(s.drawn).toEqual([]);
   });
 
   it("rejects actions out of turn or phase", () => {
@@ -192,11 +201,66 @@ describe("game end", () => {
     s = play(s, "B", { type: "newGame" });
     expect(s.phase).toBe("lobby");
     expect(s.players.map((x) => x.total)).toEqual([0, 0]);
+    expect(s.champion).toBe("A");
+    expect(s.streak).toBe(1);
+  });
+
+  it("counts consecutive wins and restarts the streak for a new champion", () => {
+    const win = (s: GameState, totals: number[]) => {
+      s.players.forEach((x, i) => (x.total = totals[i]));
+      s = { ...s, phase: "roundOver", deck: [num(10), num(10)], round: 0, dealer: 1 };
+      s = play(play(play(s, "A", { type: "nextRound" }), "A", { type: "stay" }), "B", { type: "stay" });
+      expect(s.phase).toBe("gameOver");
+      return play(s, "A", { type: "newGame" });
+    };
+    let s = game(2, [num(1), num(1)]);
+    s = win(s, [195, 0]);
+    s = win(s, [195, 0]);
+    expect([s.champion, s.streak]).toEqual(["A", 2]);
+    s = win(s, [0, 195]);
+    expect([s.champion, s.streak]).toEqual(["B", 1]);
   });
 
   it("plays another round on a tie", () => {
     let s = game(2, [num(10), num(10)], [190, 190]);
     s = play(play(s, "A", { type: "stay" }), "B", { type: "stay" });
+    expect(s.phase).toBe("roundOver");
+  });
+});
+
+describe("forfeiting", () => {
+  it("passes the turn on and discards the forfeiter's cards", () => {
+    let s = game(3, [num(1), num(2), num(3)]);
+    s = play(s, "A", { type: "leave" });
+    expect(s.players.map((x) => x.id)).toEqual(["B", "C"]);
+    expect(s.current).toBe("B");
+    expect(values(s.discard)).toEqual([1]);
+  });
+
+  it("awards the game to the last player standing", () => {
+    let s = game(2, [num(1), num(2)]);
+    s = play(s, "B", { type: "leave" });
+    expect(s.phase).toBe("gameOver");
+    expect(s.winners).toEqual(["A"]);
+    expect(s.champion).toBe("A");
+  });
+
+  it("discards an action card the forfeiter was choosing a target for", () => {
+    let s = game(3, [act("freeze"), num(2), num(3)]);
+    s = play(s, "A", { type: "leave" });
+    expect(s.pending).toBeNull();
+    expect(s.discard.some((c) => c.kind === "action")).toBe(true);
+    expect(values(p(s, "B").numbers)).toEqual([2]);
+    expect(s.current).toBe("B");
+  });
+
+  it("removes the forfeiter from someone else's choice, resolving it if one option is left", () => {
+    let s = game(3, [num(1), num(2), num(3), act("freeze")]);
+    s = play(play(s, "A", { type: "stay" }), "B", { type: "hit" });
+    expect(s.pending).toMatchObject({ chooser: "B", options: ["B", "C"] });
+    s = play(s, "C", { type: "leave" });
+    expect(s.pending).toBeNull();
+    expect(p(s, "B").status).toBe("frozen");
     expect(s.phase).toBe("roundOver");
   });
 });
@@ -212,6 +276,33 @@ describe("autoAction", () => {
     s = ok(autoAction(s, "A", rng));
     expect(s.pending).toBeNull();
     expect(s.players.some((x) => x.status === "frozen")).toBe(true);
+  });
+});
+
+describe("missed turns", () => {
+  it("forfeits a player after three timeouts in a row", () => {
+    let s = game(3, [1, 2, 3, 4, 5, 6, 7, 8, 9].map(num));
+    for (let missed = 0; missed < 3; ) {
+      const who = awaiting(s);
+      if (who === "A") {
+        s = ok(autoAction(s, "A", rng));
+        missed++;
+      } else if (who) {
+        s = play(s, who, { type: "stay" });
+      } else {
+        s = play(s, "B", { type: "nextRound" });
+      }
+    }
+    expect(s.players.map((x) => x.id)).toEqual(["B", "C"]);
+    expect(s.log).toContain("A missed 3 turns in a row");
+  });
+
+  it("resets the count when the player acts themselves", () => {
+    let s = game(2, [num(1), num(2), num(3), num(4), num(5)]);
+    s = ok(autoAction(s, "A", rng));
+    s = play(s, "B", { type: "stay" });
+    s = play(s, "A", { type: "nextRound" });
+    expect(p(s, "A").missedTurns).toBe(0);
   });
 });
 
@@ -248,7 +339,12 @@ describe("random games", () => {
         if (!who) action = { type: "nextRound" };
         else if (s.pending) action = { type: "choose", target: s.pending.options[Math.floor(r() * s.pending.options.length)] };
         else action = { type: r() < 0.65 ? "hit" : "stay" };
-        s = ok(applyAction(s, who ?? "A", action, r));
+        let actor = who ?? s.players[0].id;
+        if (s.players.length > 2 && r() < 0.01) {
+          actor = s.players[Math.floor(r() * s.players.length)].id;
+          action = { type: "leave" };
+        }
+        s = ok(applyAction(s, actor, action, r));
         expect(cardsInPlay(s)).toBe(94);
       }
       expect(Math.max(...s.players.map((x) => x.total))).toBeGreaterThanOrEqual(200);

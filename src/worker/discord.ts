@@ -22,12 +22,22 @@ export async function exchangeCode(env: Env, code: string): Promise<string> {
 export async function getUser(env: Env, accessToken: string): Promise<User | null> {
   if (env.DEV_AUTH_BYPASS === "true" && accessToken.startsWith("mock:")) {
     const [, id, name] = accessToken.split(":");
-    return id && name ? { id: `mock-${id}`, name } : null;
+    return id && name ? { id: `mock-${id}`, name, avatar: null } : null;
   }
   const response = await fetch(`${API}/users/@me`, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!response.ok) return null;
-  const user = await response.json<{ id: string; username: string; global_name: string | null }>();
-  return { id: user.id, name: user.global_name ?? user.username };
+  const user = await response.json<{
+    id: string;
+    username: string;
+    global_name: string | null;
+    avatar: string | null;
+  }>();
+  return {
+    id: user.id,
+    name: user.global_name ?? user.username,
+    // Activities may load cdn.discordapp.com/avatars directly, but not the default avatars under /embed.
+    avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : null,
+  };
 }
 
 /** The server an Activity instance is running in, or null for DMs and unknown instances. */

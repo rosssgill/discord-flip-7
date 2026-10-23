@@ -2,33 +2,55 @@
   import { MIN_PLAYERS } from "../../game/engine";
   import type { GameView } from "../../game/view";
   import type { ClientMessage, User } from "../../shared/protocol";
+  import type { AudioSettings } from "../sounds";
+  import Avatar from "./Avatar.svelte";
+  import AudioMenu from "./AudioMenu.svelte";
+  import SpectatorBar from "./SpectatorBar.svelte";
 
   let {
     game,
     spectators,
     you,
     send,
-  }: { game: GameView; spectators: User[]; you: User; send: (m: ClientMessage) => void } = $props();
+    audio = $bindable(),
+  }: {
+    game: GameView;
+    spectators: User[];
+    you: User;
+    send: (m: ClientMessage) => void;
+    audio: AudioSettings;
+  } = $props();
 
   const seated = $derived(game.players.some((p) => p.id === you.id));
 </script>
 
 <div class="lobby">
-  <h1>Flip 7</h1>
+  <header>
+    <h1>Flip 7</h1>
+    <div class="tools">
+      <SpectatorBar {spectators} />
+      <AudioMenu bind:settings={audio} />
+    </div>
+  </header>
   <p class="muted">Flip cards to get closest to 200 without busting on a duplicate number.</p>
 
   <h2>Players ({game.players.length})</h2>
-  <ul>
+  <ul class="seats">
     {#each game.players as player (player.id)}
-      <li>{player.name}{player.id === you.id ? " (you)" : ""}</li>
+      <li>
+        <Avatar
+          name={player.name}
+          src={player.avatar}
+          size={48}
+          streak={player.id === game.champion ? game.streak : 0}
+        />
+        <span>{player.id === you.id ? "You" : player.name}</span>
+      </li>
     {:else}
       <li class="muted">Nobody yet</li>
     {/each}
   </ul>
 
-  {#if spectators.length}
-    <p class="muted">Watching: {spectators.map((s) => s.name).join(", ")}</p>
-  {/if}
 
   <div class="actions">
     {#if seated}
@@ -47,8 +69,31 @@
     max-width: 28rem;
     margin: 2rem auto;
   }
-  ul {
-    padding-left: 1.2rem;
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .seats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0;
+    list-style: none;
+  }
+  .seats li {
+    display: grid;
+    justify-items: center;
+    gap: 0.3rem;
+    max-width: 5rem;
+    font-size: 0.85rem;
+    text-align: center;
+    overflow-wrap: anywhere;
   }
   .actions {
     display: flex;

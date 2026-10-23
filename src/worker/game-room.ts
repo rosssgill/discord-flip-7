@@ -2,11 +2,16 @@ import { DurableObject } from "cloudflare:workers";
 import { type Action, applyAction, autoAction, awaiting, createGame, type GameState } from "../game/engine";
 import { cryptoRng } from "../game/rng";
 import { toView } from "../game/view";
-import { clientMessage, type ServerMessage, type User } from "../shared/protocol";
+import {
+  clientMessage,
+  NEXT_ROUND_DELAY_MS,
+  type ServerMessage,
+  TURN_TIMEOUT_MS,
+  type User,
+} from "../shared/protocol";
 import { allowedGuilds, getInstanceGuild, getUser } from "./discord";
 
 export const AUTH_TIMEOUT_MS = 10_000;
-export const TURN_TIMEOUT_MS = 30_000;
 
 interface Attachment {
   user: User | null;
@@ -17,18 +22,21 @@ interface Room {
   game: GameState;
   instanceId: string;
   guildChecked: boolean;
-  turnDeadline: { player: string; at: number } | null;
+  /** When the server next acts on its own: for a player who ran out of time, or to start the next round. */
+  deadline: { kind: "turn"; player: string; at: number } | { kind: "nextRound"; at: number } | null;
 }
 
 /** One game per Discord Activity instance. State lives in storage so the object can hibernate between moves. */
 export class GameRoom extends DurableObject<Env> {
-  private room: Room = { game: createGame(), instanceId: "", guildChecked: false, turnDeadline: null };
+  private room: Room = { game: createGame(), instanceId: "", guildChecked: false, deadline: null };
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
     ctx.blockConcurrencyWhile(async () => {
-      this.room = (await ctx.storage.get<Room>("room")) ?? this.room;
+      const stored = await ctx.storage.get<Room>("room");
+      // Defaults fill fields added since the room was saved.
+      if (stored) this.room = { ...this.room, ...stored, game: { ...createGame(), ...stored.game } };
     });
   }
 
@@ -66,19 +74,19 @@ export class GameRoom extends DurableObject<Env> {
 
     const user = attachment.user;
     if (!user) return send(ws, { type: "error", message: "Not authenticated" });
-    const action: Action = message.type === "join" ? { type: "join", name: user.name } : message;
+    const action: Action = message.type === "join" ? { type: "join", name: user.name, avatar: user.avatar } : message;
     const result = applyAction(this.room.game, user.id, action, cryptoRng);
     if (!result.ok) return send(ws, { type: "error", message: result.error });
     this.room.game = result.state;
-    await this.changed();
+    await this.changed({ moved: true });
   }
 
   async webSocketClose(ws: WebSocket) {
-    await this.changed(ws);
+    await this.changed({ closing: ws });
   }
 
   async webSocketError(ws: WebSocket) {
-    await this.changed(ws);
+    await this.changed({ closing: ws });
   }
 
   async alarm() {
@@ -90,27 +98,38 @@ export class GameRoom extends DurableObject<Env> {
       }
     }
 
-    const deadline = this.room.turnDeadline;
+    const deadline = this.room.deadline;
     if (deadline && deadline.at <= now) {
-      this.room.turnDeadline = null;
-      const result = autoAction(this.room.game, deadline.player, cryptoRng);
+      this.room.deadline = null;
+      const { game } = this.room;
+      const result =
+        deadline.kind === "turn"
+          ? autoAction(game, deadline.player, cryptoRng)
+          : applyAction(game, game.players[0].id, { type: "nextRound" }, cryptoRng);
       if (result.ok) this.room.game = result.state;
+      return this.changed({ moved: result.ok });
     }
     await this.changed();
   }
 
-  /** Persists, broadcasts and re-arms timers after any change. `closing` is a socket that is going away. */
-  private async changed(closing?: WebSocket) {
+  /**
+   * Persists, broadcasts and re-arms timers after any change.
+   * `moved` means the game advanced, which starts a fresh turn timer; `closing` is a socket that is going away.
+   */
+  private async changed({ moved = false, closing }: { moved?: boolean; closing?: WebSocket } = {}) {
     const sessions = this.sessions(closing);
     const connected = new Set(sessions.map(([, user]) => user.id));
 
     const waitingOn = awaiting(this.room.game);
-    if (waitingOn && !connected.has(waitingOn)) {
-      if (this.room.turnDeadline?.player !== waitingOn) {
-        this.room.turnDeadline = { player: waitingOn, at: Date.now() + TURN_TIMEOUT_MS };
+    const deadline = this.room.deadline;
+    if (waitingOn) {
+      if (moved || deadline?.kind !== "turn" || deadline.player !== waitingOn) {
+        this.room.deadline = { kind: "turn", player: waitingOn, at: Date.now() + TURN_TIMEOUT_MS };
       }
+    } else if (this.room.game.phase === "roundOver") {
+      if (deadline?.kind !== "nextRound") this.room.deadline = { kind: "nextRound", at: Date.now() + NEXT_ROUND_DELAY_MS };
     } else {
-      this.room.turnDeadline = null;
+      this.room.deadline = null;
     }
     await this.ctx.storage.put("room", this.room);
     await this.scheduleAlarm();
@@ -122,6 +141,7 @@ export class GameRoom extends DurableObject<Env> {
       game: toView(this.room.game),
       spectators,
       connected: [...connected],
+      timerMsLeft: this.room.deadline ? Math.max(0, this.room.deadline.at - Date.now()) : null,
     };
     for (const [ws] of sessions) send(ws, message);
   }
@@ -138,7 +158,7 @@ export class GameRoom extends DurableObject<Env> {
 
   private async scheduleAlarm() {
     const times: number[] = [];
-    if (this.room.turnDeadline) times.push(this.room.turnDeadline.at);
+    if (this.room.deadline) times.push(this.room.deadline.at);
     for (const ws of this.ctx.getWebSockets()) {
       const { user, connectedAt } = ws.deserializeAttachment() as Attachment;
       if (!user && ws.readyState === WebSocket.OPEN) times.push(connectedAt + AUTH_TIMEOUT_MS);

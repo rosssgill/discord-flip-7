@@ -3,7 +3,9 @@ import { type Rng, shuffle } from "./rng";
 import { roundScore, WINNING_SCORE } from "./scoring";
 
 export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 12;
+export const MAX_PLAYERS = 18;
+/** Consecutive timed-out decisions after which a player forfeits. */
+export const MAX_MISSED_TURNS = 3;
 const LOG_LIMIT = 50;
 
 export type PlayerStatus = "active" | "stayed" | "frozen" | "busted";
@@ -11,6 +13,8 @@ export type PlayerStatus = "active" | "stayed" | "frozen" | "busted";
 export interface Player {
   id: string;
   name: string;
+  /** Discord CDN URL, or null to show an initial instead. */
+  avatar: string | null;
   total: number;
   status: PlayerStatus;
   numbers: Card[];
@@ -18,6 +22,8 @@ export interface Player {
   secondChance: Card | null;
   flip7: boolean;
   lastRoundScore: number | null;
+  /** Decisions in a row the server made for them after a timeout. */
+  missedTurns: number;
 }
 
 export interface Pending {
@@ -47,11 +53,17 @@ export interface GameState {
   tasks: Task[];
   pending: Pending | null;
   winners: string[];
+  /** Winner of the most recent game in this session, kept across new games. */
+  champion: string | null;
+  /** Consecutive games the champion has won. */
+  streak: number;
   log: string[];
+  /** Card IDs drawn by the latest action, in draw order, so clients can animate them in sequence. */
+  drawn: number[];
 }
 
 export type Action =
-  | { type: "join"; name: string }
+  | { type: "join"; name: string; avatar?: string | null }
   | { type: "leave" }
   | { type: "start" }
   | { type: "hit" }
@@ -76,12 +88,18 @@ export function createGame(): GameState {
     tasks: [],
     pending: null,
     winners: [],
+    champion: null,
+    streak: 0,
     log: [],
+    drawn: [],
   };
 }
 
 export function applyAction(state: GameState, playerId: string, action: Action, rng: Rng): Result {
   const s = structuredClone(state);
+  s.drawn = [];
+  const actor = s.players.find((p) => p.id === playerId);
+  if (actor) actor.missedTurns = 0;
   const error = handle(s, playerId, action, rng);
   return error ? { ok: false, error } : { ok: true, state: s };
 }
@@ -93,14 +111,26 @@ export function awaiting(s: GameState): string | null {
   return s.stage === "turns" ? s.current : null;
 }
 
-/** Acts for an absent player: picks a random option for a pending choice, or stays on their turn. */
+/**
+ * Acts for a player who ran out of time: picks a random option for a pending choice, or stays on their turn.
+ * After MAX_MISSED_TURNS in a row they forfeit.
+ */
 export function autoAction(state: GameState, playerId: string, rng: Rng): Result {
   if (awaiting(state) !== playerId) return { ok: false, error: "Not waiting on this player" };
-  if (state.pending) {
-    const options = state.pending.options;
-    return applyAction(state, playerId, { type: "choose", target: options[Math.floor(rng() * options.length)] }, rng);
+  const missed = (player(state, playerId).missedTurns ?? 0) + 1;
+  const action: Action = state.pending
+    ? { type: "choose", target: state.pending.options[Math.floor(rng() * state.pending.options.length)] }
+    : { type: "stay" };
+  const result = applyAction(state, playerId, action, rng);
+  if (!result.ok) return result;
+
+  const p = player(result.state, playerId);
+  p.missedTurns = missed;
+  if (missed >= MAX_MISSED_TURNS) {
+    log(result.state, `${p.name} missed ${missed} turns in a row`);
+    forfeit(result.state, p, rng);
   }
-  return applyAction(state, playerId, { type: "stay" }, rng);
+  return result;
 }
 
 export function cardLabel(card: Card): string {
@@ -116,15 +146,15 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
     if (s.phase !== "lobby") return "The game has already started";
     if (seated) return "Already seated";
     if (s.players.length >= MAX_PLAYERS) return "The table is full";
-    s.players.push(newPlayer(playerId, action.name));
+    s.players.push(newPlayer(playerId, action.name, action.avatar ?? null));
     return;
   }
   if (!seated) return "You are not seated";
 
   switch (action.type) {
     case "leave":
-      if (s.phase !== "lobby") return "You can only leave in the lobby";
-      s.players = s.players.filter((p) => p.id !== playerId);
+      if (s.phase === "playing" || s.phase === "roundOver") forfeit(s, seated, rng);
+      else s.players = s.players.filter((p) => p.id !== playerId);
       return;
 
     case "start":
@@ -144,7 +174,11 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
 
     case "newGame":
       if (s.phase !== "gameOver") return "The game is not over";
-      Object.assign(s, createGame(), { players: s.players.map((p) => newPlayer(p.id, p.name)) });
+      Object.assign(s, createGame(), {
+        players: s.players.map((p) => newPlayer(p.id, p.name, p.avatar)),
+        champion: s.champion,
+        streak: s.streak,
+      });
       return;
 
     case "hit":
@@ -174,10 +208,11 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
   }
 }
 
-function newPlayer(id: string, name: string): Player {
+function newPlayer(id: string, name: string, avatar: string | null): Player {
   return {
     id,
     name,
+    avatar,
     total: 0,
     status: "active",
     numbers: [],
@@ -185,6 +220,7 @@ function newPlayer(id: string, name: string): Player {
     secondChance: null,
     flip7: false,
     lastRoundScore: null,
+    missedTurns: 0,
   };
 }
 
@@ -350,8 +386,8 @@ function applyCardEffect(s: GameState, kind: Pending["kind"], chooserId: string,
   }
 }
 
-function endRound(s: GameState) {
-  // Action cards still waiting on a choice or a Flip Three go to the discard pile.
+/** Drops queued card resolution, sending action cards still waiting on a choice or a Flip Three to the discard pile. */
+function clearPendingWork(s: GameState) {
   if (s.pending) s.discard.push(s.pending.card);
   for (const t of s.tasks) {
     if (t.type === "resolveDeferred") s.discard.push(...t.cards);
@@ -361,6 +397,66 @@ function endRound(s: GameState) {
   s.pending = null;
   s.current = null;
   s.dealQueue = [];
+}
+
+/** Removes a player mid-game. Their cards are discarded and play continues without them. */
+function forfeit(s: GameState, p: Player, rng: Rng) {
+  log(s, `${p.name} forfeits`);
+  s.discard.push(...p.numbers, ...p.modifiers, ...(p.secondChance ? [p.secondChance] : []));
+
+  const remaining = s.players.filter((o) => o !== p);
+  if (remaining.length < MIN_PLAYERS) {
+    clearPendingWork(s);
+    s.players = remaining;
+    if (remaining.length === 1) declareWinner(s, remaining[0], `${remaining[0].name} wins by forfeit!`);
+    else Object.assign(s, createGame(), { champion: s.champion, streak: s.streak });
+    return;
+  }
+
+  if (s.phase === "playing") {
+    // Work queued for them is dropped; their own turn ends and passes on.
+    const theirTurn = s.current === p.id;
+    const next = nextActive(s, p.id);
+    s.tasks = s.tasks.filter((t) => {
+      const dropped = t.type === "endTurn" ? theirTurn : t.player === p.id;
+      if (dropped && t.type === "resolveDeferred") s.discard.push(...t.cards);
+      if (dropped && t.type === "resolveAction") s.discard.push(t.card);
+      return !dropped;
+    });
+    s.dealQueue = s.dealQueue.filter((id) => id !== p.id);
+    if (theirTurn) s.current = next === p.id ? null : next;
+
+    const pending = s.pending;
+    if (pending?.chooser === p.id) {
+      s.discard.push(pending.card);
+      s.pending = null;
+    } else if (pending?.options.includes(p.id)) {
+      s.pending = null;
+      choose(s, { ...pending, options: pending.options.filter((id) => id !== p.id) });
+    }
+  }
+
+  const index = s.players.indexOf(p);
+  s.players = remaining;
+  // Keep the dealer pointing at the same seat so rotation continues from there.
+  if (index <= s.dealer) s.dealer = (s.dealer - 1 + remaining.length) % remaining.length;
+
+  if (s.phase === "playing") {
+    run(s, rng);
+    if (s.phase === "playing" && s.stage === "turns" && !s.pending && !s.tasks.length && !s.current) endRound(s);
+  }
+}
+
+function declareWinner(s: GameState, winner: Player, message: string) {
+  s.phase = "gameOver";
+  s.winners = [winner.id];
+  s.streak = s.champion === winner.id ? s.streak + 1 : 1;
+  s.champion = winner.id;
+  log(s, message);
+}
+
+function endRound(s: GameState) {
+  clearPendingWork(s);
   s.phase = "roundOver";
 
   for (const p of s.players) {
@@ -373,9 +469,7 @@ function endRound(s: GameState) {
   if (top < WINNING_SCORE) return;
   const leaders = s.players.filter((p) => p.total === top);
   if (leaders.length === 1) {
-    s.phase = "gameOver";
-    s.winners = [leaders[0].id];
-    log(s, `${leaders[0].name} wins with ${top}!`);
+    declareWinner(s, leaders[0], `${leaders[0].name} wins with ${top}!`);
   } else {
     log(s, `Tie at ${top}, playing another round`);
   }
@@ -387,7 +481,9 @@ function drawCard(s: GameState, rng: Rng): Card | undefined {
     s.discard = [];
     log(s, "Discard pile shuffled into the deck");
   }
-  return s.deck.shift();
+  const card = s.deck.shift();
+  if (card) s.drawn.push(card.id);
+  return card;
 }
 
 function nextActive(s: GameState, fromId: string): string | null {

@@ -10,6 +10,10 @@ const FATAL_CODES = new Set([4001, 4003]);
 export class Connection {
   you = $state<User | null>(null);
   latest = $state<StateMessage | null>(null);
+  /** True while `latest` is the first state since (re)connecting, which describes the past rather than a live move. */
+  fresh = $state(true);
+  /** Local clock time when the server will next act on its own (turn timeout or next round). */
+  timerDeadline = $state<number | null>(null);
   connected = $state(false);
   error = $state<string | null>(null);
   fatal = $state<string | null>(null);
@@ -17,6 +21,7 @@ export class Connection {
   private session: Session;
   private ws: WebSocket | null = null;
   private attempts = 0;
+  private statesSinceOpen = 0;
   private ping: ReturnType<typeof setInterval> | undefined;
 
   constructor(session: Session) {
@@ -36,6 +41,7 @@ export class Connection {
     this.ws = ws;
 
     ws.onopen = () => {
+      this.statesSinceOpen = 0;
       this.attempts = 0;
       this.connected = true;
       ws.send(JSON.stringify({ type: "hello", accessToken } satisfies ClientMessage));
@@ -47,7 +53,11 @@ export class Connection {
       if (event.data === "pong") return;
       const message = JSON.parse(event.data) as ServerMessage;
       if (message.type === "welcome") this.you = message.you;
-      else if (message.type === "state") this.latest = message;
+      else if (message.type === "state") {
+        this.fresh = this.statesSinceOpen++ === 0;
+        this.latest = message;
+        this.timerDeadline = message.timerMsLeft === null ? null : Date.now() + message.timerMsLeft;
+      }
       else this.error = message.message;
     };
 

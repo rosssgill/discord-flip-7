@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     projects: [
-      { test: { name: "game", include: ["src/game/**/*.test.ts"] } },
+      { test: { name: "unit", include: ["src/game/**/*.test.ts", "src/client/**/*.test.ts"] } },
       {
         plugins: [
           cloudflareTest({
