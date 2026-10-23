@@ -225,6 +225,13 @@ const SOUNDS: Record<Sound, (ac: AudioContext, at: number) => void> = {
       noise(ac, at + offset, { duration: 0.05, volume: 0.25, filter: "lowpass", freq: 900 });
     }
   },
+  hover(ac, at) {
+    tone(ac, at, { freq: 1400, to: 1700, duration: 0.04, volume: 0.025 });
+  },
+  click(ac, at) {
+    tone(ac, at, { freq: 750, to: 480, type: "triangle", duration: 0.06, volume: 0.09 });
+    noise(ac, at, { duration: 0.02, volume: 0.08, filter: "bandpass", freq: 3000 });
+  },
   tick(ac, at) {
     tone(ac, at, { freq: 1900, type: "square", duration: 0.03, volume: 0.06 });
     noise(ac, at, { duration: 0.02, volume: 0.15, filter: "highpass", freq: 4000 });

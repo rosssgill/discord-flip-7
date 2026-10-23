@@ -13,6 +13,17 @@
   const silent = $derived(channelGain(settings.effects) === 0 && channelGain(settings.music) === 0);
   const icon = (channel: Channel) => (channelGain(channel) === 0 ? "🔇" : channel.volume < 0.5 ? "🔉" : "🔊");
 
+  // Muting shows the slider at 0 but keeps the volume, so unmuting returns to where it was.
+  // Dragging to 0 mutes; dragging up from 0 unmutes.
+  function slide(channel: Channel, value: number) {
+    if (value === 0) {
+      channel.muted = true;
+    } else {
+      channel.volume = value;
+      channel.muted = false;
+    }
+  }
+
   function closeOnOutside(event: PointerEvent) {
     if (open && !root.contains(event.target as Node)) open = false;
   }
@@ -44,8 +55,8 @@
               min="0"
               max="1"
               step="0.05"
-              bind:value={channel.volume}
-              oninput={() => (channel.muted = false)}
+              value={channel.muted ? 0 : channel.volume}
+              oninput={(e) => slide(channel, Number(e.currentTarget.value))}
             />
           </label>
         </div>

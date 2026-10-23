@@ -1,7 +1,7 @@
 import type { GameView } from "../game/view";
 import { DRAW_DURATION_MS, drawDelay } from "./timing";
 
-export type Sound = "flip" | "freeze" | "bust" | "flip7" | "yourTurn" | "victory" | "stay" | "tick";
+export type Sound = "flip" | "freeze" | "bust" | "flip7" | "yourTurn" | "victory" | "stay" | "tick" | "hover" | "click";
 
 // Lets the Flip 7 fanfare finish before a game-winning victory tune starts.
 const FLIP_7_FANFARE_MS = 900;

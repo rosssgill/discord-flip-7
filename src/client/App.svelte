@@ -32,6 +32,21 @@
 
   const send: Connection["send"] = (message) => connection?.send(message);
 
+  const enabledButton = (target: EventTarget | null) =>
+    target instanceof Element ? target.closest("button:not(:disabled)") : null;
+
+  function onPointerDown(event: PointerEvent) {
+    unlockAudio();
+    if (enabledButton(event.target)) playCues([{ sound: "click", delayMs: 0 }]);
+  }
+
+  // Mouse only: touch screens fire pointerover on tap, which would double up with the click sound.
+  function onPointerOver(event: PointerEvent) {
+    const button = enabledButton(event.target);
+    if (event.pointerType !== "mouse" || !button || button === enabledButton(event.relatedTarget)) return;
+    playCues([{ sound: "hover", delayMs: 0 }]);
+  }
+
   let audio = $state(loadAudioSettings());
   $effect(() => {
     saveAudioSettings(audio);
@@ -54,7 +69,12 @@
   });
 </script>
 
-<svelte:window bind:innerHeight onpointerdown={unlockAudio} onkeydown={unlockAudio} />
+<svelte:window
+  bind:innerHeight
+  onpointerdown={onPointerDown}
+  onpointerover={onPointerOver}
+  onkeydown={unlockAudio}
+/>
 
 <main class:compact>
   {#if startError || connection?.fatal}
