@@ -12,13 +12,14 @@ Inspired by *Flip 7* by The Op Games. This is an unofficial fan project and is n
 
 ## Development
 
-Requires [pnpm](https://pnpm.io). It downloads the pinned Node version itself.
+Requires [mise](https://mise.jdx.dev), which installs the pinned Node and Bun versions.
 
 ```sh
-pnpm install
+mise install
+bun install
 cp .dev.vars.example .dev.vars   # worker secrets
 cp .env.example .env             # client config
-pnpm dev
+bun dev
 ```
 
 Outside Discord the app signs you in as a mock player, so you can play in several tabs:
@@ -26,15 +27,15 @@ Outside Discord the app signs you in as a mock player, so you can play in severa
 
 | Command | Purpose |
 |---|---|
-| `pnpm test` | Rules unit tests, plus Worker/Durable Object tests in the Workers runtime |
-| `pnpm check` | Type-check client, worker and tests |
-| `pnpm types` | Regenerate Worker types after changing `wrangler.jsonc` or `.dev.vars` |
+| `bun run test` | Rules unit tests, plus Worker/Durable Object tests in the Workers runtime |
+| `bun run check` | Type-check client, worker and tests |
+| `bun run types` | Regenerate Worker types after changing `wrangler.jsonc` or `.dev.vars` |
 
 ### Running inside Discord
 
 1. Create an application in the [Developer Portal](https://discord.com/developers/applications), enable **Activities**, and add `http://localhost` as an OAuth2 redirect.
 2. Put the client ID in `.env` (`VITE_DISCORD_CLIENT_ID`), and the client ID and secret in `.dev.vars`.
-3. Run `pnpm dev:discord` and `cloudflared tunnel --url http://localhost:5173`.
+3. Run `bun run dev:discord` and `cloudflared tunnel --url http://localhost:5173`.
 4. Under **Activities → URL Mappings**, map `/` to the tunnel host.
 5. Launch the Activity from a voice channel's App Launcher.
 
@@ -43,11 +44,11 @@ Unverified Activities only work for the app's developer team and app testers, in
 ## Deploying
 
 ```sh
-pnpm exec wrangler login
-pnpm exec wrangler secret put DISCORD_CLIENT_ID
-pnpm exec wrangler secret put DISCORD_CLIENT_SECRET
-pnpm exec wrangler secret put DISCORD_BOT_TOKEN   # only needed with ALLOWED_GUILD_IDS
-pnpm run deploy                                   # not `pnpm deploy`, which is a built-in pnpm command
+bunx wrangler login
+bunx wrangler secret put DISCORD_CLIENT_ID
+bunx wrangler secret put DISCORD_CLIENT_SECRET
+bunx wrangler secret put DISCORD_BOT_TOKEN   # only needed with ALLOWED_GUILD_IDS
+bun run deploy
 ```
 
 Then map `/` to the deployed `*.workers.dev` host in the URL Mappings.
