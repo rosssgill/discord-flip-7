@@ -2,7 +2,10 @@ import { z } from "zod";
 import type { GameView } from "../game/view";
 
 export const clientMessage = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("hello"), accessToken: z.string().min(1).max(500) }),
+  z.object({
+    type: z.literal("hello"),
+    accessToken: z.string().min(1).max(500),
+  }),
   z.object({ type: z.literal("join") }),
   z.object({ type: z.literal("leave") }),
   z.object({ type: z.literal("start") }),

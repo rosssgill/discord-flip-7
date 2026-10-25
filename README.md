@@ -2,7 +2,7 @@
 
 A multiplayer push-your-luck card game that runs inside Discord as an [Activity](https://discord.com/developers/docs/activities/overview). Flip cards to reach 200 points, but a duplicate number busts your round.
 
-Inspired by *Flip 7* by The Op Games. This is an unofficial fan project and is not affiliated with or endorsed by The Op Games.
+Inspired by _Flip 7_ by The Op Games. This is an unofficial fan project and is not affiliated with or endorsed by The Op Games.
 
 ## Stack
 
@@ -25,11 +25,11 @@ bun dev
 Outside Discord the app signs you in as a mock player, so you can play in several tabs:
 `http://localhost:5173/?user=1&room=test`, `?user=2&room=test`, …
 
-| Command | Purpose |
-|---|---|
-| `bun run test` | Rules unit tests, plus Worker/Durable Object tests in the Workers runtime |
-| `bun run check` | Type-check client, worker and tests |
-| `bun run types` | Regenerate Worker types after changing `wrangler.jsonc` or `.dev.vars` |
+| Command         | Purpose                                                                   |
+| --------------- | ------------------------------------------------------------------------- |
+| `bun run test`  | Rules unit tests, plus Worker/Durable Object tests in the Workers runtime |
+| `bun run check` | Type-check client, worker and tests                                       |
+| `bun run types` | Regenerate Worker types after changing `wrangler.jsonc` or `.dev.vars`    |
 
 ### Running inside Discord
 
@@ -54,6 +54,7 @@ bun run deploy
 Then map `/` to the deployed `*.workers.dev` host in the URL Mappings.
 
 To run it on a larger server, verify the app (Developer Portal → App Verification). To keep it on that server only:
+
 - leave Discovery off
 - turn Public Bot off
 - allow Guild Install only

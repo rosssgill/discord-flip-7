@@ -6,7 +6,8 @@
     total,
     label,
     tick,
-  }: { deadline: number; total: number; label: string; tick: boolean } = $props();
+  }: { deadline: number; total: number; label: string; tick: boolean } =
+    $props();
 
   const TICK_FROM_S = 5;
 
@@ -29,8 +30,15 @@
   });
 </script>
 
-<div class="timer" class:urgent role="timer" aria-label="{label}: {seconds} seconds left">
-  <div class="track"><div class="fill" style:width="{(msLeft / total) * 100}%"></div></div>
+<div
+  class="timer"
+  class:urgent
+  role="timer"
+  aria-label="{label}: {seconds} seconds left"
+>
+  <div class="track">
+    <div class="fill" style:width="{(msLeft / total) * 100}%"></div>
+  </div>
   <span class="text">⏱ {label} · {seconds}s</span>
 </div>
 

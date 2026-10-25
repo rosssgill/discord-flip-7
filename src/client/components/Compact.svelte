@@ -5,17 +5,27 @@
 
   let { game, you }: { game: GameView; you: User } = $props();
 
-  const name = (id: string) => (id === you.id ? "You" : (game.players.find((p) => p.id === id)?.name ?? "?"));
+  const name = (id: string) =>
+    id === you.id
+      ? "You"
+      : (game.players.find((p) => p.id === id)?.name ?? "?");
   const me = $derived(game.players.find((p) => p.id === you.id));
   const roundNote = $derived(
-    !me ? "" : me.status === "busted" ? "bust" : `+${roundScore(me.numbers, me.modifiers, me.draw7)}`,
+    !me
+      ? ""
+      : me.status === "busted"
+        ? "bust"
+        : `+${roundScore(me.numbers, me.modifiers, me.draw7)}`,
   );
   const headline = $derived.by(() => {
     if (game.phase === "lobby") return `${game.players.length} in the lobby`;
-    if (game.phase === "gameOver") return `${game.winners.map(name).join(" & ")} won!`;
+    if (game.phase === "gameOver")
+      return `${game.winners.map(name).join(" & ")} won!`;
     if (game.phase === "roundOver") return `Round ${game.round} over`;
     if (game.waitingOn === you.id) return "Your turn!";
-    return game.waitingOn ? `${name(game.waitingOn)}'s turn` : `Round ${game.round}`;
+    return game.waitingOn
+      ? `${name(game.waitingOn)}'s turn`
+      : `Round ${game.round}`;
   });
 </script>
 
@@ -23,7 +33,11 @@
   <span class="title">Draw 7</span>
   <strong class="headline">{headline}</strong>
   {#if me && game.phase !== "lobby"}
-    <span class="muted">{me.total} pts{game.phase === "playing" ? ` · this round ${roundNote}` : ""}</span>
+    <span class="muted"
+      >{me.total} pts{game.phase === "playing"
+        ? ` · this round ${roundNote}`
+        : ""}</span
+    >
   {/if}
 </div>
 

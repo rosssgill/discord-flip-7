@@ -6,7 +6,10 @@ export type Pile = "deck" | "discard";
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-function offsetFrom(node: Element, pile: Pile): { dx: number; dy: number } | null {
+function offsetFrom(
+  node: Element,
+  pile: Pile,
+): { dx: number; dy: number } | null {
   const target = document.querySelector(`[data-pile="${pile}"]`);
   if (!target) return null;
   const from = target.getBoundingClientRect();
@@ -35,12 +38,16 @@ export function drawFromDeck(
 }
 
 /** Flies a card off to the discard pile, fading as it lands. */
-export function toDiscard(node: Element, { duration = 400 } = {}): TransitionConfig {
+export function toDiscard(
+  node: Element,
+  { duration = 400 } = {},
+): TransitionConfig {
   const offset = offsetFrom(node, "discard");
   if (!offset || reducedMotion.matches) return { duration: 0 };
   return {
     duration,
     easing: cubicInOut,
-    css: (t, u) => `transform: translate(${offset.dx * u}px, ${offset.dy * u}px); opacity: ${Math.min(1, t * 3)}`,
+    css: (t, u) =>
+      `transform: translate(${offset.dx * u}px, ${offset.dy * u}px); opacity: ${Math.min(1, t * 3)}`,
   };
 }

@@ -73,7 +73,8 @@ export type Action =
   /** `keep` lists who stays seated (e.g. those still connected); defaults to everyone. */
   | { type: "newGame"; keep?: string[] };
 
-export type Result = { ok: true; state: GameState } | { ok: false; error: string };
+export type Result =
+  { ok: true; state: GameState } | { ok: false; error: string };
 
 export function createGame(): GameState {
   return {
@@ -96,7 +97,12 @@ export function createGame(): GameState {
   };
 }
 
-export function applyAction(state: GameState, playerId: string, action: Action, rng: Rng): Result {
+export function applyAction(
+  state: GameState,
+  playerId: string,
+  action: Action,
+  rng: Rng,
+): Result {
   const s = structuredClone(state);
   s.drawn = [];
   const actor = s.players.find((p) => p.id === playerId);
@@ -116,11 +122,22 @@ export function awaiting(s: GameState): string | null {
  * Acts for a player who ran out of time: picks a random option for a pending choice, or stays on their turn.
  * After MAX_MISSED_TURNS in a row they forfeit.
  */
-export function autoAction(state: GameState, playerId: string, rng: Rng): Result {
-  if (awaiting(state) !== playerId) return { ok: false, error: "Not waiting on this player" };
+export function autoAction(
+  state: GameState,
+  playerId: string,
+  rng: Rng,
+): Result {
+  if (awaiting(state) !== playerId)
+    return { ok: false, error: "Not waiting on this player" };
   const missed = (player(state, playerId).missedTurns ?? 0) + 1;
   const action: Action = state.pending
-    ? { type: "choose", target: state.pending.options[Math.floor(rng() * state.pending.options.length)] }
+    ? {
+        type: "choose",
+        target:
+          state.pending.options[
+            Math.floor(rng() * state.pending.options.length)
+          ],
+      }
     : { type: "stay" };
   const result = applyAction(state, playerId, action, rng);
   if (!result.ok) return result;
@@ -137,10 +154,19 @@ export function autoAction(state: GameState, playerId: string, rng: Rng): Result
 export function cardLabel(card: Card): string {
   if (card.kind === "number") return String(card.value);
   if (card.kind === "modifier") return card.modifier;
-  return { freeze: "Freeze", flipThree: "Flip Three", secondChance: "Second Chance" }[card.action];
+  return {
+    freeze: "Freeze",
+    flipThree: "Flip Three",
+    secondChance: "Second Chance",
+  }[card.action];
 }
 
-function handle(s: GameState, playerId: string, action: Action, rng: Rng): string | undefined {
+function handle(
+  s: GameState,
+  playerId: string,
+  action: Action,
+  rng: Rng,
+): string | undefined {
   const seated = s.players.find((p) => p.id === playerId);
 
   if (action.type === "join") {
@@ -155,7 +181,9 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
     if (s.phase !== "gameOver") return "The game is not over";
     const keep = action.keep ?? s.players.map((p) => p.id);
     Object.assign(s, createGame(), {
-      players: s.players.filter((p) => keep.includes(p.id)).map((p) => newPlayer(p.id, p.name, p.avatar)),
+      players: s.players
+        .filter((p) => keep.includes(p.id))
+        .map((p) => newPlayer(p.id, p.name, p.avatar)),
       champion: s.champion,
       streak: s.streak,
     });
@@ -167,13 +195,15 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
     case "leave":
       // After the game the final standings stay put; the next game only keeps players still around.
       if (s.phase === "gameOver") return "The game is over";
-      if (s.phase === "lobby") s.players = s.players.filter((p) => p.id !== playerId);
+      if (s.phase === "lobby")
+        s.players = s.players.filter((p) => p.id !== playerId);
       else forfeit(s, seated, rng);
       return;
 
     case "start":
       if (s.phase !== "lobby") return "The game has already started";
-      if (s.players.length < MIN_PLAYERS) return `Need at least ${MIN_PLAYERS} players`;
+      if (s.players.length < MIN_PLAYERS)
+        return `Need at least ${MIN_PLAYERS} players`;
       s.deck = shuffle(buildDeck(), rng);
       s.discard = [];
       s.round = 0;
@@ -188,25 +218,43 @@ function handle(s: GameState, playerId: string, action: Action, rng: Rng): strin
 
     case "hit":
     case "stay":
-      if (s.phase !== "playing" || s.stage !== "turns" || s.pending || s.current !== playerId) {
+      if (
+        s.phase !== "playing" ||
+        s.stage !== "turns" ||
+        s.pending ||
+        s.current !== playerId
+      ) {
         return "It is not your turn";
       }
       if (action.type === "stay") {
         seated.status = "stayed";
-        log(s, `${seated.name} stays on ${roundScore(seated.numbers, seated.modifiers, false)}`);
+        log(
+          s,
+          `${seated.name} stays on ${roundScore(seated.numbers, seated.modifiers, false)}`,
+        );
         s.tasks.push({ type: "endTurn" });
       } else {
-        s.tasks.push({ type: "draw", player: playerId, flipThree: false }, { type: "endTurn" });
+        s.tasks.push(
+          { type: "draw", player: playerId, flipThree: false },
+          { type: "endTurn" },
+        );
       }
       run(s, rng);
       return;
 
     case "choose": {
       const pending = s.pending;
-      if (s.phase !== "playing" || !pending || pending.chooser !== playerId) return "Nothing to choose";
+      if (s.phase !== "playing" || !pending || pending.chooser !== playerId)
+        return "Nothing to choose";
       if (!pending.options.includes(action.target)) return "Invalid target";
       s.pending = null;
-      applyCardEffect(s, pending.kind, pending.chooser, pending.card, action.target);
+      applyCardEffect(
+        s,
+        pending.kind,
+        pending.chooser,
+        pending.card,
+        action.target,
+      );
       run(s, rng);
       return;
     }
@@ -231,8 +279,19 @@ function newPlayer(id: string, name: string, avatar: string | null): Player {
 
 function startRound(s: GameState, rng: Rng) {
   for (const p of s.players) {
-    s.discard.push(...p.numbers, ...p.modifiers, ...(p.secondChance ? [p.secondChance] : []));
-    Object.assign(p, { status: "active", numbers: [], modifiers: [], secondChance: null, draw7: false, lastRoundScore: null });
+    s.discard.push(
+      ...p.numbers,
+      ...p.modifiers,
+      ...(p.secondChance ? [p.secondChance] : []),
+    );
+    Object.assign(p, {
+      status: "active",
+      numbers: [],
+      modifiers: [],
+      secondChance: null,
+      draw7: false,
+      lastRoundScore: null,
+    });
   }
   s.round += 1;
   if (s.round > 1) s.dealer = (s.dealer + 1) % s.players.length;
@@ -241,7 +300,9 @@ function startRound(s: GameState, rng: Rng) {
   s.current = null;
   s.tasks = [];
   s.pending = null;
-  s.dealQueue = s.players.map((_, i) => s.players[(s.dealer + 1 + i) % s.players.length].id);
+  s.dealQueue = s.players.map(
+    (_, i) => s.players[(s.dealer + 1 + i) % s.players.length].id,
+  );
   log(s, `Round ${s.round}: ${s.players[s.dealer].name} deals`);
   run(s, rng);
 }
@@ -284,7 +345,13 @@ function execute(s: GameState, task: Task, rng: Rng) {
     }
     case "resolveDeferred":
       if (player(s, task.player).status === "active") {
-        s.tasks.unshift(...task.cards.map((card) => ({ type: "resolveAction" as const, player: task.player, card })));
+        s.tasks.unshift(
+          ...task.cards.map((card) => ({
+            type: "resolveAction" as const,
+            player: task.player,
+            card,
+          })),
+        );
       } else {
         s.discard.push(...task.cards);
       }
@@ -333,13 +400,17 @@ function receive(s: GameState, p: Player, card: Card, inFlipThree: boolean) {
       p.secondChance = card;
       return;
     }
-    const options = s.players.filter((o) => o.id !== p.id && o.status === "active" && !o.secondChance).map((o) => o.id);
+    const options = s.players
+      .filter((o) => o.id !== p.id && o.status === "active" && !o.secondChance)
+      .map((o) => o.id);
     choose(s, { kind: "giveSecondChance", chooser: p.id, card, options });
     return;
   }
   if (inFlipThree) {
     // Freeze and Flip Three drawn during Flip Three wait until all three cards are flipped.
-    const deferred = s.tasks.find((t) => t.type === "resolveDeferred" && t.player === p.id);
+    const deferred = s.tasks.find(
+      (t) => t.type === "resolveDeferred" && t.player === p.id,
+    );
     if (deferred?.type === "resolveDeferred") {
       deferred.cards.push(card);
       return;
@@ -350,7 +421,9 @@ function receive(s: GameState, p: Player, card: Card, inFlipThree: boolean) {
 
 function promptAction(s: GameState, chooser: Player, card: Card) {
   if (card.kind !== "action" || card.action === "secondChance") return;
-  const options = s.players.filter((o) => o.status === "active").map((o) => o.id);
+  const options = s.players
+    .filter((o) => o.status === "active")
+    .map((o) => o.id);
   choose(s, { kind: card.action, chooser: chooser.id, card, options });
 }
 
@@ -359,13 +432,25 @@ function choose(s: GameState, pending: Pending) {
   if (pending.options.length === 0) {
     s.discard.push(pending.card);
   } else if (pending.options.length === 1) {
-    applyCardEffect(s, pending.kind, pending.chooser, pending.card, pending.options[0]);
+    applyCardEffect(
+      s,
+      pending.kind,
+      pending.chooser,
+      pending.card,
+      pending.options[0],
+    );
   } else {
     s.pending = pending;
   }
 }
 
-function applyCardEffect(s: GameState, kind: Pending["kind"], chooserId: string, card: Card, targetId: string) {
+function applyCardEffect(
+  s: GameState,
+  kind: Pending["kind"],
+  chooserId: string,
+  card: Card,
+  targetId: string,
+) {
   const chooser = player(s, chooserId);
   const target = player(s, targetId);
   switch (kind) {
@@ -376,7 +461,10 @@ function applyCardEffect(s: GameState, kind: Pending["kind"], chooserId: string,
     case "freeze":
       s.discard.push(card);
       target.status = "frozen";
-      log(s, `${chooser.name} freezes ${target.name} on ${roundScore(target.numbers, target.modifiers, false)}`);
+      log(
+        s,
+        `${chooser.name} freezes ${target.name} on ${roundScore(target.numbers, target.modifiers, false)}`,
+      );
       return;
     case "flipThree":
       s.discard.push(card);
@@ -407,14 +495,23 @@ function clearPendingWork(s: GameState) {
 /** Removes a player mid-game. Their cards are discarded and play continues without them. */
 function forfeit(s: GameState, p: Player, rng: Rng) {
   log(s, `${p.name} forfeits`);
-  s.discard.push(...p.numbers, ...p.modifiers, ...(p.secondChance ? [p.secondChance] : []));
+  s.discard.push(
+    ...p.numbers,
+    ...p.modifiers,
+    ...(p.secondChance ? [p.secondChance] : []),
+  );
 
   const remaining = s.players.filter((o) => o !== p);
   if (remaining.length < MIN_PLAYERS) {
     clearPendingWork(s);
     s.players = remaining;
-    if (remaining.length === 1) declareWinner(s, remaining[0], `${remaining[0].name} wins by forfeit!`);
-    else Object.assign(s, createGame(), { champion: s.champion, streak: s.streak });
+    if (remaining.length === 1)
+      declareWinner(s, remaining[0], `${remaining[0].name} wins by forfeit!`);
+    else
+      Object.assign(s, createGame(), {
+        champion: s.champion,
+        streak: s.streak,
+      });
     return;
   }
 
@@ -437,18 +534,29 @@ function forfeit(s: GameState, p: Player, rng: Rng) {
       s.pending = null;
     } else if (pending?.options.includes(p.id)) {
       s.pending = null;
-      choose(s, { ...pending, options: pending.options.filter((id) => id !== p.id) });
+      choose(s, {
+        ...pending,
+        options: pending.options.filter((id) => id !== p.id),
+      });
     }
   }
 
   const index = s.players.indexOf(p);
   s.players = remaining;
   // Keep the dealer pointing at the same seat so rotation continues from there.
-  if (index <= s.dealer) s.dealer = (s.dealer - 1 + remaining.length) % remaining.length;
+  if (index <= s.dealer)
+    s.dealer = (s.dealer - 1 + remaining.length) % remaining.length;
 
   if (s.phase === "playing") {
     run(s, rng);
-    if (s.phase === "playing" && s.stage === "turns" && !s.pending && !s.tasks.length && !s.current) endRound(s);
+    if (
+      s.phase === "playing" &&
+      s.stage === "turns" &&
+      !s.pending &&
+      !s.tasks.length &&
+      !s.current
+    )
+      endRound(s);
   }
 }
 
@@ -465,10 +573,14 @@ function endRound(s: GameState) {
   s.phase = "roundOver";
 
   for (const p of s.players) {
-    p.lastRoundScore = p.status === "busted" ? 0 : roundScore(p.numbers, p.modifiers, p.draw7);
+    p.lastRoundScore =
+      p.status === "busted" ? 0 : roundScore(p.numbers, p.modifiers, p.draw7);
     p.total += p.lastRoundScore;
   }
-  log(s, `Round ${s.round} over: ${s.players.map((p) => `${p.name} +${p.lastRoundScore}`).join(", ")}`);
+  log(
+    s,
+    `Round ${s.round} over: ${s.players.map((p) => `${p.name} +${p.lastRoundScore}`).join(", ")}`,
+  );
 
   const top = Math.max(...s.players.map((p) => p.total));
   if (top < WINNING_SCORE) return;

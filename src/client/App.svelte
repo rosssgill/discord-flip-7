@@ -23,7 +23,10 @@
 
   startSession()
     .then((session) => (connection = new Connection(session)))
-    .catch((error: unknown) => (startError = error instanceof Error ? error.message : String(error)));
+    .catch(
+      (error: unknown) =>
+        (startError = error instanceof Error ? error.message : String(error)),
+    );
 
   // Discord shrinks the Activity to a small tile while you browse other channels.
   const COMPACT_MAX_HEIGHT = 320;
@@ -43,7 +46,12 @@
   // Mouse only: touch screens fire pointerover on tap, which would double up with the click sound.
   function onPointerOver(event: PointerEvent) {
     const button = enabledButton(event.target);
-    if (event.pointerType !== "mouse" || !button || button === enabledButton(event.relatedTarget)) return;
+    if (
+      event.pointerType !== "mouse" ||
+      !button ||
+      button === enabledButton(event.relatedTarget)
+    )
+      return;
     playCues([{ sound: "hover", delayMs: 0 }]);
   }
 
@@ -64,7 +72,8 @@
     const game = connection?.latest?.game;
     const you = connection?.you;
     if (!game || !you) return;
-    if (!untrack(() => connection?.fresh)) playCues(soundCues(previous, game, you.id));
+    if (!untrack(() => connection?.fresh))
+      playCues(soundCues(previous, game, you.id));
     previous = game;
   });
 </script>
@@ -84,7 +93,9 @@
   {:else}
     {@const { spectators, connected } = connection.latest}
     <!-- The first state after connecting replays nothing, so its draws appear in place instead of animating. -->
-    {@const game = connection.fresh ? { ...connection.latest.game, drawn: [] } : connection.latest.game}
+    {@const game = connection.fresh
+      ? { ...connection.latest.game, drawn: [] }
+      : connection.latest.game}
     {#if compact}
       <Compact {game} you={connection.you} />
     {:else if game.phase === "lobby"}

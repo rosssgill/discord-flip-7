@@ -36,7 +36,13 @@
   aria-pressed={isPeeked}
   aria-label="Show {player.name}'s cards"
 >
-  <Avatar name={player.name} src={player.avatar} size={28} {streak} offline={!online} />
+  <Avatar
+    name={player.name}
+    src={player.avatar}
+    size={28}
+    {streak}
+    offline={!online}
+  />
   <span class="name">{player.name}</span>
   <span class="total">{player.total}</span>
   <span class="detail">{detail}</span>

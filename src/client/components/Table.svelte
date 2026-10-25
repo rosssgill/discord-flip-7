@@ -1,7 +1,12 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import type { GameView } from "../../game/view";
-  import { type ClientMessage, NEXT_ROUND_DELAY_MS, TURN_TIMEOUT_MS, type User } from "../../shared/protocol";
+  import {
+    type ClientMessage,
+    NEXT_ROUND_DELAY_MS,
+    TURN_TIMEOUT_MS,
+    type User,
+  } from "../../shared/protocol";
   import type { AudioSettings } from "../sounds";
   import { cardLabel } from "../../game/engine";
   import { drawFromDeck, toDiscard } from "../transitions";
@@ -35,7 +40,9 @@
   const CONFIRM_MS = 4000;
   let confirmingLeave = $state(false);
   let confirmTimer: ReturnType<typeof setTimeout> | undefined;
-  const midGame = $derived(game.phase === "playing" || game.phase === "roundOver");
+  const midGame = $derived(
+    game.phase === "playing" || game.phase === "roundOver",
+  );
   function leave() {
     if (midGame && !confirmingLeave) {
       confirmingLeave = true;
@@ -47,11 +54,20 @@
     send({ type: "leave" });
   }
 
-  const name = (id: string) => game.players.find((p) => p.id === id)?.name ?? "?";
+  const name = (id: string) =>
+    game.players.find((p) => p.id === id)?.name ?? "?";
   const seated = $derived(game.players.some((p) => p.id === you.id));
-  const myTurn = $derived(game.phase === "playing" && !game.pending && game.current === you.id);
-  const myChoice = $derived(game.pending?.chooser === you.id ? game.pending : null);
-  const prompts = { freeze: "Freeze who?", flipThree: "Who flips three?", giveSecondChance: "Give Second Chance to?" };
+  const myTurn = $derived(
+    game.phase === "playing" && !game.pending && game.current === you.id,
+  );
+  const myChoice = $derived(
+    game.pending?.chooser === you.id ? game.pending : null,
+  );
+  const prompts = {
+    freeze: "Freeze who?",
+    flipThree: "Who flips three?",
+    giveSecondChance: "Give Second Chance to?",
+  };
 
   // Phones and big tables get a spotlight on whoever is acting plus a strip of chips,
   // so up to 18 players fit without scrolling.
@@ -59,18 +75,26 @@
   const MAX_FULL_PANELS = 8;
   let innerWidth = $state(window.innerWidth);
   const narrow = $derived(innerWidth < NARROW_MAX_WIDTH);
-  const spotlightLayout = $derived(narrow || game.players.length > MAX_FULL_PANELS);
+  const spotlightLayout = $derived(
+    narrow || game.players.length > MAX_FULL_PANELS,
+  );
 
   // A peek lasts until the game moves on to someone else.
   let peek = $state<{ player: string; during: string | null } | null>(null);
-  const peeked = $derived(peek && peek.during === game.waitingOn ? peek.player : null);
+  const peeked = $derived(
+    peek && peek.during === game.waitingOn ? peek.player : null,
+  );
   const togglePeek = (id: string) => {
     peek = peeked === id ? null : { player: id, during: game.waitingOn };
   };
 
   const me = $derived(game.players.find((p) => p.id === you.id));
-  const spotlight = $derived(game.players.find((p) => p.id === (peeked ?? game.waitingOn)));
-  const others = $derived(game.players.filter((p) => p.id !== spotlight?.id && p.id !== you.id));
+  const spotlight = $derived(
+    game.players.find((p) => p.id === (peeked ?? game.waitingOn)),
+  );
+  const others = $derived(
+    game.players.filter((p) => p.id !== spotlight?.id && p.id !== you.id),
+  );
   const streakOf = (id: string) => (id === game.champion ? game.streak : 0);
 </script>
 
@@ -93,7 +117,11 @@
     <div class="tools">
       <SpectatorBar {spectators} />
       {#if seated && game.phase !== "gameOver"}
-        <button class="leave" class:confirming={confirmingLeave} onclick={leave}>
+        <button
+          class="leave"
+          class:confirming={confirmingLeave}
+          onclick={leave}
+        >
           {confirmingLeave ? "Forfeit" : "Leave"}
         </button>
       {/if}
@@ -107,12 +135,21 @@
       {#if game.pending}
         <figure class="in-play">
           {#key game.pending.card.id}
-            <div class="slot" in:drawFromDeck|global={{ order: game.drawn.indexOf(game.pending.card.id), count: game.drawn.length }} out:toDiscard|global>
+            <div
+              class="slot"
+              in:drawFromDeck|global={{
+                order: game.drawn.indexOf(game.pending.card.id),
+                count: game.drawn.length,
+              }}
+              out:toDiscard|global
+            >
               <Card card={game.pending.card} />
             </div>
           {/key}
           <figcaption>
-            {game.pending.chooser === you.id ? "You" : name(game.pending.chooser)} drew {cardLabel(game.pending.card)}
+            {game.pending.chooser === you.id
+              ? "You"
+              : name(game.pending.chooser)} drew {cardLabel(game.pending.card)}
           </figcaption>
         </figure>
       {/if}
@@ -155,18 +192,30 @@
       <TurnTimer
         deadline={timerDeadline}
         total={TURN_TIMEOUT_MS}
-        label={game.waitingOn === you.id ? "Your turn" : `${name(game.waitingOn)}'s turn`}
+        label={game.waitingOn === you.id
+          ? "Your turn"
+          : `${name(game.waitingOn)}'s turn`}
         tick={game.waitingOn === you.id}
       />
     {:else if timerDeadline && game.phase === "roundOver"}
-      <TurnTimer deadline={timerDeadline} total={NEXT_ROUND_DELAY_MS} label="Next round" tick={false} />
+      <TurnTimer
+        deadline={timerDeadline}
+        total={NEXT_ROUND_DELAY_MS}
+        label="Next round"
+        tick={false}
+      />
     {/if}
     {#if game.phase === "gameOver"}
       <strong>{game.winners.map(name).join(" & ")} wins!</strong>
-      <button class="primary" onclick={() => send({ type: "newGame" })}>New game</button>
+      <button class="primary" onclick={() => send({ type: "newGame" })}
+        >New game</button
+      >
     {:else if game.phase === "roundOver"}
       <strong>Round {game.round} over</strong>
-      {#if seated}<button class="primary" onclick={() => send({ type: "nextRound" })}>Next round</button>{/if}
+      {#if seated}<button
+          class="primary"
+          onclick={() => send({ type: "nextRound" })}>Next round</button
+        >{/if}
     {:else if myChoice}
       <strong>{prompts[myChoice.kind]}</strong>
       {#each myChoice.options as option (option)}

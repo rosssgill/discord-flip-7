@@ -10,18 +10,26 @@ export default {
 
     if (url.pathname === "/api/token" && request.method === "POST") {
       const body = await request.json<{ code?: unknown }>().catch(() => null);
-      if (typeof body?.code !== "string") return Response.json({ error: "Missing code" }, { status: 400 });
+      if (typeof body?.code !== "string")
+        return Response.json({ error: "Missing code" }, { status: 400 });
       try {
-        return Response.json({ access_token: await exchangeCode(env, body.code) });
+        return Response.json({
+          access_token: await exchangeCode(env, body.code),
+        });
       } catch {
-        return Response.json({ error: "Token exchange failed" }, { status: 502 });
+        return Response.json(
+          { error: "Token exchange failed" },
+          { status: 502 },
+        );
       }
     }
 
     if (url.pathname === "/api/ws") {
-      if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
+      if (request.headers.get("Upgrade") !== "websocket")
+        return new Response("Expected WebSocket", { status: 426 });
       const instance = url.searchParams.get("instance") ?? "";
-      if (!INSTANCE_ID.test(instance)) return new Response("Invalid instance", { status: 400 });
+      if (!INSTANCE_ID.test(instance))
+        return new Response("Invalid instance", { status: 400 });
       return env.GAME_ROOM.getByName(instance).fetch(request);
     }
 

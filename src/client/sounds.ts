@@ -18,9 +18,14 @@ export interface AudioSettings {
 }
 
 export function loadAudioSettings(): AudioSettings {
-  const defaults: AudioSettings = { effects: { volume: 1, muted: false }, music: { volume: 0.7, muted: false } };
+  const defaults: AudioSettings = {
+    effects: { volume: 1, muted: false },
+    music: { volume: 0.7, muted: false },
+  };
   try {
-    const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null") as Partial<AudioSettings> | null;
+    const stored = JSON.parse(
+      localStorage.getItem(SETTINGS_KEY) ?? "null",
+    ) as Partial<AudioSettings> | null;
     return { ...defaults, ...stored };
   } catch {
     return defaults;
@@ -81,7 +86,8 @@ export function playCues(cues: Cue[]) {
   if (effectsGain === 0) return;
   const ac = audio();
   if (!ac) return;
-  for (const { sound, delayMs } of cues) SOUNDS[sound](ac, ac.currentTime + delayMs / 1000);
+  for (const { sound, delayMs } of cues)
+    SOUNDS[sound](ac, ac.currentTime + delayMs / 1000);
 }
 
 // Streamed through an <audio> element rather than decoded, since a full track decodes to ~80 MB.
@@ -141,7 +147,11 @@ interface ToneOptions {
   volume: number;
 }
 
-function tone(ac: AudioContext, at: number, { freq, to, type = "sine", duration, volume }: ToneOptions) {
+function tone(
+  ac: AudioContext,
+  at: number,
+  { freq, to, type = "sine", duration, volume }: ToneOptions,
+) {
   const osc = ac.createOscillator();
   const gain = ac.createGain();
   osc.type = type;
@@ -163,8 +173,16 @@ interface NoiseOptions {
   to?: number;
 }
 
-function noise(ac: AudioContext, at: number, { duration, volume, filter, freq, to }: NoiseOptions) {
-  const buffer = ac.createBuffer(1, Math.ceil(ac.sampleRate * duration), ac.sampleRate);
+function noise(
+  ac: AudioContext,
+  at: number,
+  { duration, volume, filter, freq, to }: NoiseOptions,
+) {
+  const buffer = ac.createBuffer(
+    1,
+    Math.ceil(ac.sampleRate * duration),
+    ac.sampleRate,
+  );
   const data = buffer.getChannelData(0);
   for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   const source = ac.createBufferSource();
@@ -182,22 +200,55 @@ function noise(ac: AudioContext, at: number, { duration, volume, filter, freq, t
 
 const SOUNDS: Record<Sound, (ac: AudioContext, at: number) => void> = {
   flip(ac, at) {
-    noise(ac, at, { duration: 0.07, volume: 0.35, filter: "bandpass", freq: 2600 });
-    tone(ac, at, { freq: 900, to: 500, type: "triangle", duration: 0.06, volume: 0.08 });
+    noise(ac, at, {
+      duration: 0.07,
+      volume: 0.35,
+      filter: "bandpass",
+      freq: 2600,
+    });
+    tone(ac, at, {
+      freq: 900,
+      to: 500,
+      type: "triangle",
+      duration: 0.06,
+      volume: 0.08,
+    });
   },
   freeze(ac, at) {
-    noise(ac, at, { duration: 0.7, volume: 0.18, filter: "highpass", freq: 1500, to: 9000 });
+    noise(ac, at, {
+      duration: 0.7,
+      volume: 0.18,
+      filter: "highpass",
+      freq: 1500,
+      to: 9000,
+    });
     [1568, 2093, 2637, 3136, 4186].forEach((freq, i) =>
       tone(ac, at + i * 0.06, { freq, duration: 0.8, volume: 0.06 }),
     );
   },
   bust(ac, at) {
-    tone(ac, at, { freq: 320, to: 70, type: "sawtooth", duration: 0.5, volume: 0.12 });
-    noise(ac, at, { duration: 0.25, volume: 0.25, filter: "lowpass", freq: 400 });
+    tone(ac, at, {
+      freq: 320,
+      to: 70,
+      type: "sawtooth",
+      duration: 0.5,
+      volume: 0.12,
+    });
+    noise(ac, at, {
+      duration: 0.25,
+      volume: 0.25,
+      filter: "lowpass",
+      freq: 400,
+    });
   },
   draw7(ac, at) {
     [523, 659, 784, 1047].forEach((freq, i) =>
-      tone(ac, at + i * 0.1, { freq, type: "triangle", duration: i === 3 ? 0.7 : 0.18, volume: 0.15 }),
+      tone(ac, at + i * 0.1, {
+        freq,
+        type: "triangle",
+        duration: i === 3 ? 0.7 : 0.18,
+        volume: 0.15,
+      }),
     );
   },
   // "Du du du duuu" on a C, then a rising Ab–Bb–C to finish.
@@ -214,27 +265,64 @@ const SOUNDS: Record<Sound, (ac: AudioContext, at: number) => void> = {
       [523, 1.9, 0.9],
     ];
     for (const [freq, start, length] of notes) {
-      tone(ac, at + start, { freq, type: "square", duration: length, volume: 0.07 });
-      tone(ac, at + start, { freq: freq * 2, type: "triangle", duration: length, volume: 0.05 });
+      tone(ac, at + start, {
+        freq,
+        type: "square",
+        duration: length,
+        volume: 0.07,
+      });
+      tone(ac, at + start, {
+        freq: freq * 2,
+        type: "triangle",
+        duration: length,
+        volume: 0.05,
+      });
     }
   },
   // Two knocks on the table, like signalling "stay" at a card table.
   stay(ac, at) {
     for (const offset of [0, 0.14]) {
-      tone(ac, at + offset, { freq: 180, to: 90, type: "sine", duration: 0.12, volume: 0.35 });
-      noise(ac, at + offset, { duration: 0.05, volume: 0.25, filter: "lowpass", freq: 900 });
+      tone(ac, at + offset, {
+        freq: 180,
+        to: 90,
+        type: "sine",
+        duration: 0.12,
+        volume: 0.35,
+      });
+      noise(ac, at + offset, {
+        duration: 0.05,
+        volume: 0.25,
+        filter: "lowpass",
+        freq: 900,
+      });
     }
   },
   hover(ac, at) {
     tone(ac, at, { freq: 1400, to: 1700, duration: 0.04, volume: 0.025 });
   },
   click(ac, at) {
-    tone(ac, at, { freq: 750, to: 480, type: "triangle", duration: 0.06, volume: 0.09 });
-    noise(ac, at, { duration: 0.02, volume: 0.08, filter: "bandpass", freq: 3000 });
+    tone(ac, at, {
+      freq: 750,
+      to: 480,
+      type: "triangle",
+      duration: 0.06,
+      volume: 0.09,
+    });
+    noise(ac, at, {
+      duration: 0.02,
+      volume: 0.08,
+      filter: "bandpass",
+      freq: 3000,
+    });
   },
   tick(ac, at) {
     tone(ac, at, { freq: 1900, type: "square", duration: 0.03, volume: 0.06 });
-    noise(ac, at, { duration: 0.02, volume: 0.15, filter: "highpass", freq: 4000 });
+    noise(ac, at, {
+      duration: 0.02,
+      volume: 0.15,
+      filter: "highpass",
+      freq: 4000,
+    });
   },
   yourTurn(ac, at) {
     tone(ac, at, { freq: 880, duration: 0.25, volume: 0.12 });

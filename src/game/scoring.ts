@@ -3,7 +3,11 @@ import type { Card } from "./cards";
 export const DRAW_7_BONUS = 15;
 export const WINNING_SCORE = 200;
 
-export function roundScore(numbers: Card[], modifiers: Card[], draw7: boolean): number {
+export function roundScore(
+  numbers: Card[],
+  modifiers: Card[],
+  draw7: boolean,
+): number {
   let sum = 0;
   for (const card of numbers) if (card.kind === "number") sum += card.value;
   let bonus = 0;

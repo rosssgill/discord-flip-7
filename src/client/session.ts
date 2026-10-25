@@ -13,7 +13,11 @@ const params = new URLSearchParams(location.search);
 export async function startSession(): Promise<Session> {
   if (!params.has("frame_id")) {
     const user = params.get("user") ?? "1";
-    return { accessToken: `mock:${user}:Player ${user}`, instanceId: params.get("room") ?? "local", apiBase: "" };
+    return {
+      accessToken: `mock:${user}:Player ${user}`,
+      instanceId: params.get("room") ?? "local",
+      apiBase: "",
+    };
   }
 
   const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
@@ -34,5 +38,9 @@ export async function startSession(): Promise<Session> {
   if (!response.ok) throw new Error("Could not sign in with Discord");
   const { access_token } = (await response.json()) as { access_token: string };
   await sdk.commands.authenticate({ access_token });
-  return { accessToken: access_token, instanceId: sdk.instanceId, apiBase: "/.proxy" };
+  return {
+    accessToken: access_token,
+    instanceId: sdk.instanceId,
+    apiBase: "/.proxy",
+  };
 }

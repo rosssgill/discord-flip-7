@@ -37,14 +37,18 @@ export class Connection {
   private open() {
     const { apiBase, instanceId, accessToken } = this.session;
     const scheme = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${scheme}://${location.host}${apiBase}/api/ws?instance=${encodeURIComponent(instanceId)}`);
+    const ws = new WebSocket(
+      `${scheme}://${location.host}${apiBase}/api/ws?instance=${encodeURIComponent(instanceId)}`,
+    );
     this.ws = ws;
 
     ws.onopen = () => {
       this.statesSinceOpen = 0;
       this.attempts = 0;
       this.connected = true;
-      ws.send(JSON.stringify({ type: "hello", accessToken } satisfies ClientMessage));
+      ws.send(
+        JSON.stringify({ type: "hello", accessToken } satisfies ClientMessage),
+      );
       // Keeps the Discord proxy from dropping idle sockets; the room answers without waking up.
       this.ping = setInterval(() => ws.send("ping"), PING_MS);
     };
@@ -56,9 +60,11 @@ export class Connection {
       else if (message.type === "state") {
         this.fresh = this.statesSinceOpen++ === 0;
         this.latest = message;
-        this.timerDeadline = message.timerMsLeft === null ? null : Date.now() + message.timerMsLeft;
-      }
-      else this.error = message.message;
+        this.timerDeadline =
+          message.timerMsLeft === null
+            ? null
+            : Date.now() + message.timerMsLeft;
+      } else this.error = message.message;
     };
 
     ws.onclose = (event) => {
@@ -68,7 +74,10 @@ export class Connection {
         this.fatal = event.reason || "Disconnected";
         return;
       }
-      setTimeout(() => this.open(), Math.min(500 * 2 ** this.attempts++, 10_000));
+      setTimeout(
+        () => this.open(),
+        Math.min(500 * 2 ** this.attempts++, 10_000),
+      );
     };
   }
 }

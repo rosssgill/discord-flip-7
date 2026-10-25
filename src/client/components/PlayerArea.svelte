@@ -13,21 +13,44 @@
     online,
     drawn,
     streak,
-  }: { player: Player; isYou: boolean; isCurrent: boolean; online: boolean; drawn: number[]; streak: number } =
-    $props();
+  }: {
+    player: Player;
+    isYou: boolean;
+    isCurrent: boolean;
+    online: boolean;
+    drawn: number[];
+    streak: number;
+  } = $props();
 
-  const SNOWFLAKES = Array.from({ length: 12 }, (_, i) => ({ angle: i * 30 + (i % 3) * 9, distance: 70 + (i % 4) * 22 }));
+  const SNOWFLAKES = Array.from({ length: 12 }, (_, i) => ({
+    angle: i * 30 + (i % 3) * 9,
+    distance: 70 + (i % 4) * 22,
+  }));
 
-  const cards = $derived([...player.numbers, ...player.modifiers, ...(player.secondChance ? [player.secondChance] : [])]);
+  const cards = $derived([
+    ...player.numbers,
+    ...player.modifiers,
+    ...(player.secondChance ? [player.secondChance] : []),
+  ]);
   const points = $derived(
-    player.status === "busted" ? 0 : roundScore(player.numbers, player.modifiers, player.draw7),
+    player.status === "busted"
+      ? 0
+      : roundScore(player.numbers, player.modifiers, player.draw7),
   );
   const statusLabel = $derived(
-    player.draw7 ? "Draw 7!" : { active: "", stayed: "Stayed", frozen: "Frozen", busted: "Bust" }[player.status],
+    player.draw7
+      ? "Draw 7!"
+      : { active: "", stayed: "Stayed", frozen: "Frozen", busted: "Bust" }[
+          player.status
+        ],
   );
 </script>
 
-<section class="player {player.status}" class:current={isCurrent} class:you={isYou}>
+<section
+  class="player {player.status}"
+  class:current={isCurrent}
+  class:you={isYou}
+>
   <div class="who" class:offline={!online}>
     <Avatar name={player.name} src={player.avatar} {streak} offline={!online} />
     <span class="name">{isYou ? "You" : player.name}</span>
@@ -39,7 +62,10 @@
       <div
         class="slot"
         animate:flip={{ duration: 250 }}
-        in:drawFromDeck|global={{ order: drawn.indexOf(card.id), count: drawn.length }}
+        in:drawFromDeck|global={{
+          order: drawn.indexOf(card.id),
+          count: drawn.length,
+        }}
         out:toDiscard
       >
         <Card {card} />
@@ -55,7 +81,11 @@
   {#if player.status === "frozen"}
     <div class="ice" aria-hidden="true">
       {#each SNOWFLAKES as flake, i (i)}
-        <span class="flake" style:--angle="{flake.angle}deg" style:--distance="{flake.distance}px">❄</span>
+        <span
+          class="flake"
+          style:--angle="{flake.angle}deg"
+          style:--distance="{flake.distance}px">❄</span
+        >
       {/each}
     </div>
   {/if}
@@ -147,9 +177,22 @@
     border-radius: inherit;
     border: 2px solid var(--ice);
     background:
-      radial-gradient(circle at 15% 20%, rgb(255 255 255 / 0.35) 0 2px, transparent 3px),
-      radial-gradient(circle at 70% 75%, rgb(255 255 255 / 0.3) 0 2px, transparent 3px),
-      linear-gradient(135deg, rgb(190 230 255 / 0.32), rgb(120 185 255 / 0.12) 60%, rgb(220 245 255 / 0.3));
+      radial-gradient(
+        circle at 15% 20%,
+        rgb(255 255 255 / 0.35) 0 2px,
+        transparent 3px
+      ),
+      radial-gradient(
+        circle at 70% 75%,
+        rgb(255 255 255 / 0.3) 0 2px,
+        transparent 3px
+      ),
+      linear-gradient(
+        135deg,
+        rgb(190 230 255 / 0.32),
+        rgb(120 185 255 / 0.12) 60%,
+        rgb(220 245 255 / 0.3)
+      );
     box-shadow:
       inset 0 0 28px rgb(200 235 255 / 0.65),
       0 0 14px rgb(160 215 255 / 0.5);
@@ -178,11 +221,13 @@
   }
   @keyframes burst {
     from {
-      transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(0.4);
+      transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0)
+        scale(0.4);
       opacity: 1;
     }
     to {
-      transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) rotate(180deg) scale(1);
+      transform: translate(-50%, -50%) rotate(var(--angle))
+        translateX(var(--distance)) rotate(180deg) scale(1);
       opacity: 0;
     }
   }

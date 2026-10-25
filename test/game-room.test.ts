@@ -1,4 +1,8 @@
-import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
+import {
+  evictDurableObject,
+  runDurableObjectAlarm,
+  runInDurableObject,
+} from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createGame } from "../src/game/engine";
@@ -11,9 +15,12 @@ let instanceCounter = 0;
 const newInstance = () => `test-${++instanceCounter}`;
 
 async function connect(instance: string) {
-  const response = await exports.default.fetch(`https://example.com/api/ws?instance=${instance}`, {
-    headers: { Upgrade: "websocket" },
-  });
+  const response = await exports.default.fetch(
+    `https://example.com/api/ws?instance=${instance}`,
+    {
+      headers: { Upgrade: "websocket" },
+    },
+  );
   const ws = response.webSocket;
   if (!ws) throw new Error(`No WebSocket (status ${response.status})`);
   const inbox: ServerMessage[] = [];
@@ -28,18 +35,28 @@ async function connect(instance: string) {
 
   return {
     ws,
-    send: (message: ClientMessage | string) => ws.send(typeof message === "string" ? message : JSON.stringify(message)),
+    send: (message: ClientMessage | string) =>
+      ws.send(typeof message === "string" ? message : JSON.stringify(message)),
     /** Waits for and consumes the next message of `type` matching `where`. */
     async next<T extends ServerMessage["type"]>(
       type: T,
       where: (m: Extract<ServerMessage, { type: T }>) => boolean = () => true,
     ): Promise<Extract<ServerMessage, { type: T }>> {
       for (let i = 0; i < 200; i++) {
-        const index = inbox.findIndex((m) => m.type === type && where(m as Extract<ServerMessage, { type: T }>));
-        if (index >= 0) return inbox.splice(index, 1)[0] as Extract<ServerMessage, { type: T }>;
+        const index = inbox.findIndex(
+          (m) =>
+            m.type === type && where(m as Extract<ServerMessage, { type: T }>),
+        );
+        if (index >= 0)
+          return inbox.splice(index, 1)[0] as Extract<
+            ServerMessage,
+            { type: T }
+          >;
         await new Promise((r) => setTimeout(r, 10));
       }
-      throw new Error(`Timed out waiting for ${type}; inbox: ${JSON.stringify(inbox)}`);
+      throw new Error(
+        `Timed out waiting for ${type}; inbox: ${JSON.stringify(inbox)}`,
+      );
     },
     closeCode: () => closeCode,
   };
@@ -57,14 +74,26 @@ beforeEach(() => {
     const url = String(input instanceof Request ? input.url : input);
     const instance = url.match(/activity-instances\/(.+)$/)?.[1];
     if (instance) {
-      const guild = instance.startsWith("blocked") ? "other-guild" : "allowed-guild";
-      return Response.json({ instance_id: instance, location: { guild_id: guild } });
+      const guild = instance.startsWith("blocked")
+        ? "other-guild"
+        : "allowed-guild";
+      return Response.json({
+        instance_id: instance,
+        location: { guild_id: guild },
+      });
     }
     if (url.endsWith("/users/@me")) {
-      if (new Headers(init?.headers).get("Authorization") !== "Bearer valid-token") {
+      if (
+        new Headers(init?.headers).get("Authorization") !== "Bearer valid-token"
+      ) {
         return new Response("Unauthorized", { status: 401 });
       }
-      return Response.json({ id: "42", username: "jess", global_name: "Jess", avatar: "abc123" });
+      return Response.json({
+        id: "42",
+        username: "jess",
+        global_name: "Jess",
+        avatar: "abc123",
+      });
     }
     throw new Error(`Unexpected fetch ${url}`);
   });
@@ -113,9 +142,16 @@ describe("GameRoom", () => {
     const client = await connect(newInstance());
     client.send({ type: "hello", accessToken: "valid-token" });
     const avatar = "https://cdn.discordapp.com/avatars/42/abc123.png?size=128";
-    expect((await client.next("welcome")).you).toEqual({ id: "42", name: "Jess", avatar });
+    expect((await client.next("welcome")).you).toEqual({
+      id: "42",
+      name: "Jess",
+      avatar,
+    });
     client.send({ type: "join" });
-    const state = await client.next("state", (m) => m.game.players.length === 1);
+    const state = await client.next(
+      "state",
+      (m) => m.game.players.length === 1,
+    );
     expect(state.game.players[0]).toMatchObject({ name: "Jess", avatar });
   });
 
@@ -132,7 +168,9 @@ describe("GameRoom", () => {
     await player(instance, 2);
     a.send({ type: "join" });
     const state = await a.next("state", (m) => m.game.players.length === 1);
-    expect(state.spectators).toEqual([{ id: "mock-2", name: "Player 2", avatar: null }]);
+    expect(state.spectators).toEqual([
+      { id: "mock-2", name: "Player 2", avatar: null },
+    ]);
   });
 
   it("keeps a player's seat across reconnects and evictions", async () => {
@@ -155,7 +193,12 @@ describe("GameRoom", () => {
     const stub = env.GAME_ROOM.getByName(instance);
     await runInDurableObject(stub, async (_room: GameRoom, state) => {
       const { drawn: _drawn, ...oldGame } = createGame();
-      await state.storage.put("room", { game: oldGame, instanceId: instance, guildChecked: false, deadline: null });
+      await state.storage.put("room", {
+        game: oldGame,
+        instanceId: instance,
+        guildChecked: false,
+        deadline: null,
+      });
     });
     await evictDurableObject(stub);
 
@@ -185,12 +228,22 @@ describe("GameRoom", () => {
 
     const stub = env.GAME_ROOM.getByName(instance);
     await runInDurableObject(stub, (room: GameRoom) => {
-      const internals = room as unknown as { room: { deadline: { kind: string; player?: string; at: number } | null } };
-      expect(internals.room.deadline).toMatchObject({ kind: "turn", player: waitingOn });
+      const internals = room as unknown as {
+        room: {
+          deadline: { kind: string; player?: string; at: number } | null;
+        };
+      };
+      expect(internals.room.deadline).toMatchObject({
+        kind: "turn",
+        player: waitingOn,
+      });
       internals.room.deadline!.at = 0;
     });
     expect(await runDurableObjectAlarm(stub)).toBe(true);
-    await present.next("state", (m) => m.game.log.length > started.game.log.length);
+    await present.next(
+      "state",
+      (m) => m.game.log.length > started.game.log.length,
+    );
   });
 });
 
@@ -212,7 +265,10 @@ describe("after a game", () => {
 
     b.send({ type: "newGame" });
     // Only the post-game lobby has a champion, which skips lobby states from before the game.
-    const lobby = await b.next("state", (m) => m.game.phase === "lobby" && m.game.champion === "mock-1");
+    const lobby = await b.next(
+      "state",
+      (m) => m.game.phase === "lobby" && m.game.champion === "mock-1",
+    );
     expect(lobby.game.players).toEqual([]);
   });
 });
@@ -232,20 +288,32 @@ describe("round timer", () => {
     while (state.game.phase === "playing") {
       const { pending, waitingOn } = state.game;
       const actor = clients[waitingOn as keyof typeof clients];
-      actor.send(pending ? { type: "choose", target: pending.options[0] } : { type: "stay" });
-      state = await a.next("state", (m) => m.game.log.length > state.game.log.length);
+      actor.send(
+        pending
+          ? { type: "choose", target: pending.options[0] }
+          : { type: "stay" },
+      );
+      state = await a.next(
+        "state",
+        (m) => m.game.log.length > state.game.log.length,
+      );
     }
     expect(state.game.phase).toBe("roundOver");
     expect(state.timerMsLeft).toBeGreaterThan(7_000);
 
     const stub = env.GAME_ROOM.getByName(instance);
     await runInDurableObject(stub, (room: GameRoom) => {
-      const internals = room as unknown as { room: { deadline: { kind: string; at: number } | null } };
+      const internals = room as unknown as {
+        room: { deadline: { kind: string; at: number } | null };
+      };
       expect(internals.room.deadline?.kind).toBe("nextRound");
       internals.room.deadline!.at = 0;
     });
     expect(await runDurableObjectAlarm(stub)).toBe(true);
-    await a.next("state", (m) => m.game.phase === "playing" && m.game.round === 2);
+    await a.next(
+      "state",
+      (m) => m.game.phase === "playing" && m.game.round === 2,
+    );
   });
 });
 
@@ -303,10 +371,19 @@ describe("empty rooms", () => {
 
 describe("HTTP routes", () => {
   it("validates WebSocket upgrades and token requests", async () => {
-    expect((await exports.default.fetch("https://example.com/api/ws?instance=x")).status).toBe(426);
-    const bad = await exports.default.fetch("https://example.com/api/ws?instance=a%20b", { headers: { Upgrade: "websocket" } });
+    expect(
+      (await exports.default.fetch("https://example.com/api/ws?instance=x"))
+        .status,
+    ).toBe(426);
+    const bad = await exports.default.fetch(
+      "https://example.com/api/ws?instance=a%20b",
+      { headers: { Upgrade: "websocket" } },
+    );
     expect(bad.status).toBe(400);
-    const token = await exports.default.fetch("https://example.com/api/token", { method: "POST", body: "{}" });
+    const token = await exports.default.fetch("https://example.com/api/token", {
+      method: "POST",
+      body: "{}",
+    });
     expect(token.status).toBe(400);
   });
 });

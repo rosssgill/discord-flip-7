@@ -9,5 +9,10 @@ export type GameView = Omit<GameState, "deck" | "discard" | "tasks"> & {
 /** What clients may see: everything is face up except the deck order. */
 export function toView(state: GameState): GameView {
   const { deck, discard, tasks: _tasks, ...rest } = state;
-  return { ...rest, deckCount: deck.length, discardCount: discard.length, waitingOn: awaiting(state) };
+  return {
+    ...rest,
+    deckCount: deck.length,
+    discardCount: discard.length,
+    waitingOn: awaiting(state),
+  };
 }

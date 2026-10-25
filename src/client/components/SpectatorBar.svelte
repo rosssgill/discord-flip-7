@@ -10,10 +10,15 @@
 </script>
 
 {#if spectators.length}
-  <div class="spectators" title="Watching: {spectators.map((s) => s.name).join(', ')}">
+  <div
+    class="spectators"
+    title="Watching: {spectators.map((s) => s.name).join(', ')}"
+  >
     <div class="stack">
       {#each shown as user (user.id)}
-        <div class="face"><Avatar name={user.name} src={user.avatar} size={24} /></div>
+        <div class="face">
+          <Avatar name={user.name} src={user.avatar} size={24} />
+        </div>
       {/each}
     </div>
     {#if hidden > 0}<span class="more">+{hidden}</span>{/if}

@@ -10,8 +10,11 @@
     { key: "effects", label: "Sound effects" },
     { key: "music", label: "Music" },
   ];
-  const silent = $derived(channelGain(settings.effects) === 0 && channelGain(settings.music) === 0);
-  const icon = (channel: Channel) => (channelGain(channel) === 0 ? "🔇" : channel.volume < 0.5 ? "🔉" : "🔊");
+  const silent = $derived(
+    channelGain(settings.effects) === 0 && channelGain(settings.music) === 0,
+  );
+  const icon = (channel: Channel) =>
+    channelGain(channel) === 0 ? "🔇" : channel.volume < 0.5 ? "🔉" : "🔊";
 
   // Muting shows the slider at 0 but keeps the volume, so unmuting returns to where it was.
   // Dragging to 0 mutes; dragging up from 0 unmutes.
@@ -29,10 +32,18 @@
   }
 </script>
 
-<svelte:window onpointerdown={closeOnOutside} onkeydown={(e) => e.key === "Escape" && (open = false)} />
+<svelte:window
+  onpointerdown={closeOnOutside}
+  onkeydown={(e) => e.key === "Escape" && (open = false)}
+/>
 
 <div class="audio" bind:this={root}>
-  <button class="toggle" onclick={() => (open = !open)} aria-expanded={open} aria-label="Sound settings">
+  <button
+    class="toggle"
+    onclick={() => (open = !open)}
+    aria-expanded={open}
+    aria-label="Sound settings"
+  >
     {silent ? "🔇" : "🔊"}
   </button>
   {#if open}
@@ -44,7 +55,9 @@
             class="mute"
             onclick={() => (channel.muted = !channel.muted)}
             aria-pressed={channel.muted}
-            aria-label="{channel.muted ? 'Unmute' : 'Mute'} {label.toLowerCase()}"
+            aria-label="{channel.muted
+              ? 'Unmute'
+              : 'Mute'} {label.toLowerCase()}"
           >
             {icon(channel)}
           </button>

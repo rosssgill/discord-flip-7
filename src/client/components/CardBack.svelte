@@ -13,7 +13,11 @@
     box-sizing: border-box;
     border-radius: 0.5rem;
     border: 3px solid var(--card-bg);
-    background: repeating-linear-gradient(45deg, var(--action) 0 6px, #a3360a 6px 12px);
+    background: repeating-linear-gradient(
+      45deg,
+      var(--action) 0 6px,
+      #a3360a 6px 12px
+    );
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.3);
   }
   span {

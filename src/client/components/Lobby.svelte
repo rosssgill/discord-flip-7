@@ -26,13 +26,15 @@
 
 <div class="lobby">
   <header>
-    <h1><img class="logo" src="/logo.jpg" alt="Draw 7" /></h1>
+    <h1><img class="logo" src="/logo.png" alt="Draw 7" /></h1>
     <div class="tools">
       <SpectatorBar {spectators} />
       <AudioMenu bind:settings={audio} />
     </div>
   </header>
-  <p class="muted">Flip cards to get closest to 200 without busting on a duplicate number.</p>
+  <p class="muted">
+    Flip cards to get closest to 200 without busting on a duplicate number.
+  </p>
 
   <h2>Players ({game.players.length})</h2>
   <ul class="seats">
@@ -51,15 +53,20 @@
     {/each}
   </ul>
 
-
   <div class="actions">
     {#if seated}
       <button onclick={() => send({ type: "leave" })}>Leave</button>
-      <button class="primary" disabled={game.players.length < MIN_PLAYERS} onclick={() => send({ type: "start" })}>
+      <button
+        class="primary"
+        disabled={game.players.length < MIN_PLAYERS}
+        onclick={() => send({ type: "start" })}
+      >
         Start game
       </button>
     {:else}
-      <button class="primary" onclick={() => send({ type: "join" })}>Join game</button>
+      <button class="primary" onclick={() => send({ type: "join" })}
+        >Join game</button
+      >
     {/if}
   </div>
 </div>
@@ -74,10 +81,9 @@
     display: flex;
     justify-content: center;
   }
-  /* The logo's own background matches --bg, so its padding blends into the page. */
   .logo {
     display: block;
-    width: min(16rem, 70vw);
+    width: min(10rem, 45vw);
   }
   .tools {
     position: absolute;

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildDeck, type ActionKind, type Card, type Modifier } from "./cards";
-import { type Action, applyAction, autoAction, awaiting, createGame, type GameState } from "./engine";
+import {
+  type Action,
+  applyAction,
+  autoAction,
+  awaiting,
+  createGame,
+  type GameState,
+} from "./engine";
 import { seededRng } from "./rng";
 import { roundScore } from "./scoring";
 import { toView } from "./view";
@@ -8,13 +15,26 @@ import { toView } from "./view";
 const rng = seededRng(1);
 let nextId = 1000;
 const num = (value: number): Card => ({ id: nextId++, kind: "number", value });
-const mod = (modifier: Modifier): Card => ({ id: nextId++, kind: "modifier", modifier });
-const act = (action: ActionKind): Card => ({ id: nextId++, kind: "action", action });
+const mod = (modifier: Modifier): Card => ({
+  id: nextId++,
+  kind: "modifier",
+  modifier,
+});
+const act = (action: ActionKind): Card => ({
+  id: nextId++,
+  kind: "action",
+  action,
+});
 
 /** Seats players A, B, … and starts a round dealt from `deck` (top first), with the last player dealing. */
-function game(playerCount: number, deck: Card[], totals: number[] = []): GameState {
+function game(
+  playerCount: number,
+  deck: Card[],
+  totals: number[] = [],
+): GameState {
   let s = createGame();
-  for (const id of "ABCDEF".slice(0, playerCount)) s = ok(applyAction(s, id, { type: "join", name: id }, rng));
+  for (const id of "ABCDEF".slice(0, playerCount))
+    s = ok(applyAction(s, id, { type: "join", name: id }, rng));
   s.players.forEach((p, i) => (p.total = totals[i] ?? 0));
   s = { ...s, phase: "roundOver", deck, round: 0, dealer: playerCount - 1 };
   return play(s, "A", { type: "nextRound" });
@@ -30,7 +50,8 @@ function play(s: GameState, playerId: string, action: Action): GameState {
 }
 
 const p = (s: GameState, id: string) => s.players.find((x) => x.id === id)!;
-const values = (cards: Card[]) => cards.map((c) => (c.kind === "number" ? c.value : c));
+const values = (cards: Card[]) =>
+  cards.map((c) => (c.kind === "number" ? c.value : c));
 
 describe("deck", () => {
   it("has 94 cards with the Draw 7 distribution", () => {
@@ -49,7 +70,9 @@ describe("deck", () => {
 describe("scoring", () => {
   it("adds numbers and modifiers, doubling only the numbers", () => {
     expect(roundScore([num(3), num(5)], [mod("+4")], false)).toBe(12);
-    expect(roundScore([num(3), num(5)], [mod("+4"), mod("x2")], false)).toBe(20);
+    expect(roundScore([num(3), num(5)], [mod("+4"), mod("x2")], false)).toBe(
+      20,
+    );
     expect(roundScore([num(3)], [mod("x2")], true)).toBe(21);
   });
 });
@@ -61,7 +84,11 @@ describe("dealing and turns", () => {
     expect(values(p(s, "C").numbers)).toEqual([3]);
     expect(s.stage).toBe("turns");
     expect(s.current).toBe("A");
-    expect(s.drawn).toEqual([...p(s, "A").numbers, ...p(s, "B").numbers, ...p(s, "C").numbers].map((c) => c.id));
+    expect(s.drawn).toEqual(
+      [...p(s, "A").numbers, ...p(s, "B").numbers, ...p(s, "C").numbers].map(
+        (c) => c.id,
+      ),
+    );
   });
 
   it("records only the cards drawn by the latest action", () => {
@@ -74,10 +101,20 @@ describe("dealing and turns", () => {
 
   it("rejects actions out of turn or phase", () => {
     const s = game(2, [num(1), num(2)]);
-    expect(applyAction(s, "B", { type: "hit" }, rng)).toEqual({ ok: false, error: "It is not your turn" });
-    expect(applyAction(s, "Z", { type: "join", name: "Z" }, rng)).toMatchObject({ ok: false });
-    const lobby = ok(applyAction(createGame(), "A", { type: "join", name: "A" }, rng));
-    expect(applyAction(lobby, "A", { type: "start" }, rng)).toEqual({ ok: false, error: "Need at least 2 players" });
+    expect(applyAction(s, "B", { type: "hit" }, rng)).toEqual({
+      ok: false,
+      error: "It is not your turn",
+    });
+    expect(applyAction(s, "Z", { type: "join", name: "Z" }, rng)).toMatchObject(
+      { ok: false },
+    );
+    const lobby = ok(
+      applyAction(createGame(), "A", { type: "join", name: "A" }, rng),
+    );
+    expect(applyAction(lobby, "A", { type: "start" }, rng)).toEqual({
+      ok: false,
+      error: "Need at least 2 players",
+    });
   });
 
   it("busts on a duplicate number and scores 0", () => {
@@ -110,7 +147,17 @@ describe("dealing and turns", () => {
 
 describe("Draw 7", () => {
   it("ends the round immediately with a 15 point bonus", () => {
-    let s = game(2, [num(1), num(9), mod("+4"), num(2), num(3), num(4), num(5), num(6), num(7)]);
+    let s = game(2, [
+      num(1),
+      num(9),
+      mod("+4"),
+      num(2),
+      num(3),
+      num(4),
+      num(5),
+      num(6),
+      num(7),
+    ]);
     s = play(s, "A", { type: "hit" });
     s = play(s, "B", { type: "stay" });
     for (let i = 0; i < 6; i++) s = play(s, "A", { type: "hit" });
@@ -124,7 +171,11 @@ describe("Draw 7", () => {
 describe("action cards", () => {
   it("Freeze waits for the drawer to choose, and frozen players are skipped", () => {
     let s = game(3, [act("freeze"), num(3), num(4)]);
-    expect(s.pending).toMatchObject({ kind: "freeze", chooser: "A", options: ["A", "B", "C"] });
+    expect(s.pending).toMatchObject({
+      kind: "freeze",
+      chooser: "A",
+      options: ["A", "B", "C"],
+    });
     expect(awaiting(s)).toBe("A");
     s = play(s, "A", { type: "choose", target: "B" });
     expect(p(s, "B").status).toBe("frozen");
@@ -158,7 +209,9 @@ describe("action cards", () => {
     let s = game(2, [act("flipThree"), num(3), act("freeze"), num(3), num(8)]);
     s = play(s, "A", { type: "choose", target: "B" });
     expect(p(s, "B").status).toBe("busted");
-    expect(s.discard.some((c) => c.kind === "action" && c.action === "freeze")).toBe(true);
+    expect(
+      s.discard.some((c) => c.kind === "action" && c.action === "freeze"),
+    ).toBe(true);
     expect(s.pending).toBeNull();
     expect(s.current).toBe("A");
     expect(s.deck).toHaveLength(1);
@@ -178,14 +231,21 @@ describe("action cards", () => {
   it("a second Second Chance must be given to an active player without one", () => {
     let s = game(3, [act("secondChance"), num(1), num(2), act("secondChance")]);
     s = play(s, "A", { type: "hit" });
-    expect(s.pending).toMatchObject({ kind: "giveSecondChance", options: ["B", "C"] });
+    expect(s.pending).toMatchObject({
+      kind: "giveSecondChance",
+      options: ["B", "C"],
+    });
     s = play(s, "A", { type: "choose", target: "C" });
     expect(p(s, "C").secondChance).not.toBeNull();
     expect(s.current).toBe("B");
   });
 
   it("a spare Second Chance is discarded when nobody can take it", () => {
-    let s = game(2, [act("secondChance"), act("secondChance"), act("secondChance")]);
+    let s = game(2, [
+      act("secondChance"),
+      act("secondChance"),
+      act("secondChance"),
+    ]);
     s = play(s, "A", { type: "hit" });
     expect(s.pending).toBeNull();
     expect(s.discard).toHaveLength(1);
@@ -208,8 +268,18 @@ describe("game end", () => {
   it("counts consecutive wins and restarts the streak for a new champion", () => {
     const win = (s: GameState, totals: number[]) => {
       s.players.forEach((x, i) => (x.total = totals[i]));
-      s = { ...s, phase: "roundOver", deck: [num(10), num(10)], round: 0, dealer: 1 };
-      s = play(play(play(s, "A", { type: "nextRound" }), "A", { type: "stay" }), "B", { type: "stay" });
+      s = {
+        ...s,
+        phase: "roundOver",
+        deck: [num(10), num(10)],
+        round: 0,
+        dealer: 1,
+      };
+      s = play(
+        play(play(s, "A", { type: "nextRound" }), "A", { type: "stay" }),
+        "B",
+        { type: "stay" },
+      );
       expect(s.phase).toBe("gameOver");
       return play(s, "A", { type: "newGame" });
     };
@@ -223,9 +293,14 @@ describe("game end", () => {
 
   it("lets anyone start the next game, keeping only the listed players", () => {
     let s = game(3, [num(10), num(1), num(2)], [195, 0, 0]);
-    s = play(play(play(s, "A", { type: "stay" }), "B", { type: "stay" }), "C", { type: "stay" });
+    s = play(play(play(s, "A", { type: "stay" }), "B", { type: "stay" }), "C", {
+      type: "stay",
+    });
     expect(s.phase).toBe("gameOver");
-    expect(applyAction(s, "A", { type: "leave" }, rng)).toEqual({ ok: false, error: "The game is over" });
+    expect(applyAction(s, "A", { type: "leave" }, rng)).toEqual({
+      ok: false,
+      error: "The game is over",
+    });
     s = play(s, "spectator", { type: "newGame", keep: ["B", "spectator"] });
     expect(s.phase).toBe("lobby");
     expect(s.players.map((x) => x.id)).toEqual(["B"]);
@@ -292,7 +367,7 @@ describe("autoAction", () => {
 describe("missed turns", () => {
   it("forfeits a player after three timeouts in a row", () => {
     let s = game(3, [1, 2, 3, 4, 5, 6, 7, 8, 9].map(num));
-    for (let missed = 0; missed < 3; ) {
+    for (let missed = 0; missed < 3;) {
       const who = awaiting(s);
       if (who === "A") {
         s = ok(autoAction(s, "A", rng));
@@ -329,8 +404,10 @@ describe("view", () => {
 describe("random games", () => {
   function cardsInPlay(s: GameState): number {
     let n = s.deck.length + s.discard.length + (s.pending ? 1 : 0);
-    for (const x of s.players) n += x.numbers.length + x.modifiers.length + (x.secondChance ? 1 : 0);
-    for (const t of s.tasks) if (t.type === "resolveDeferred") n += t.cards.length;
+    for (const x of s.players)
+      n += x.numbers.length + x.modifiers.length + (x.secondChance ? 1 : 0);
+    for (const t of s.tasks)
+      if (t.type === "resolveDeferred") n += t.cards.length;
     return n;
   }
 
@@ -339,7 +416,8 @@ describe("random games", () => {
       const r = seededRng(seed);
       let s = createGame();
       const ids = ["A", "B", "C", "D", "E", "F"].slice(0, 2 + (seed % 5));
-      for (const id of ids) s = ok(applyAction(s, id, { type: "join", name: id }, r));
+      for (const id of ids)
+        s = ok(applyAction(s, id, { type: "join", name: id }, r));
       s = ok(applyAction(s, "A", { type: "start" }, r));
 
       for (let step = 0; s.phase !== "gameOver"; step++) {
@@ -347,7 +425,12 @@ describe("random games", () => {
         const who = awaiting(s);
         let action: Action;
         if (!who) action = { type: "nextRound" };
-        else if (s.pending) action = { type: "choose", target: s.pending.options[Math.floor(r() * s.pending.options.length)] };
+        else if (s.pending)
+          action = {
+            type: "choose",
+            target:
+              s.pending.options[Math.floor(r() * s.pending.options.length)],
+          };
         else action = { type: r() < 0.65 ? "hit" : "stay" };
         let actor = who ?? s.players[0].id;
         if (s.players.length > 2 && r() < 0.01) {
@@ -357,7 +440,9 @@ describe("random games", () => {
         s = ok(applyAction(s, actor, action, r));
         expect(cardsInPlay(s)).toBe(94);
       }
-      expect(Math.max(...s.players.map((x) => x.total))).toBeGreaterThanOrEqual(200);
+      expect(Math.max(...s.players.map((x) => x.total))).toBeGreaterThanOrEqual(
+        200,
+      );
     }
   });
 });
