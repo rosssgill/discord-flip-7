@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EyeIcon from "@lucide/svelte/icons/eye";
   import { Badge } from "$lib/components/ui/badge";
   import * as Tooltip from "$lib/components/ui/tooltip";
   import type { User } from "../../shared/protocol";
@@ -15,7 +16,8 @@
   <Tooltip.Root>
     <Tooltip.Trigger>
       {#snippet child({ props })}
-        <Badge {...props} variant="secondary" class="h-7 gap-1.5 pl-0.5">
+        <Badge {...props} variant="secondary" class="h-7 gap-1.5">
+          <EyeIcon data-icon="inline-start" />
           <span class="flex -space-x-2">
             {#each shown as user (user.id)}
               <span class="ring-secondary rounded-full ring-2">

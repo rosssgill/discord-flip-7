@@ -26,16 +26,16 @@
   const seated = $derived(game.players.some((p) => p.id === you.id));
 </script>
 
-<div class="mx-auto my-8 flex max-w-md flex-col gap-4">
-  <!-- On phones the tools get their own row so they don't overlap the logo. -->
-  <header class="relative flex flex-col-reverse items-center gap-2">
+<div class="mx-auto my-8 flex max-w-md flex-col items-center gap-4 text-center">
+  <!-- On phones the toolbar gets its own row so it doesn't overlap the logo. -->
+  <header class="relative flex w-full flex-col-reverse items-center gap-2">
     <h1><img class="w-[min(10rem,45vw)]" src="/logo.png" alt="Draw 7" /></h1>
-    <div
-      class="flex items-center gap-1 self-end sm:absolute sm:top-0 sm:right-0"
-    >
+    <div class="flex w-full items-center sm:absolute sm:inset-x-0 sm:top-0">
       <SpectatorBar {spectators} />
-      <RulesDialog />
-      <AudioMenu bind:settings={audio} />
+      <div class="ml-auto flex items-center gap-1">
+        <RulesDialog />
+        <AudioMenu bind:settings={audio} />
+      </div>
     </div>
   </header>
   <p class="text-muted-foreground">
@@ -44,7 +44,7 @@
 
   <h2 class="text-xl font-bold">Players ({game.players.length})</h2>
   <!-- Top margin leaves room for the champion's crown above the avatar. -->
-  <ul class="mt-2 flex flex-wrap gap-4">
+  <ul class="mt-2 flex flex-wrap justify-center gap-4">
     {#each game.players as player (player.id)}
       <li
         class="flex max-w-20 flex-col items-center gap-1 text-center text-sm wrap-anywhere"
