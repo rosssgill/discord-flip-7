@@ -12,11 +12,12 @@ Inspired by _Flip 7_ by The Op Games. This is an unofficial fan project and is n
 
 ## Development
 
-Requires [mise](https://mise.jdx.dev), which installs the pinned Node and Bun versions.
+Requires [mise](https://mise.jdx.dev), which installs the pinned Node, Bun and prek versions.
 
 ```sh
 mise install
 bun install
+prek install                     # pre-commit hooks: format, type-check, test
 cp .dev.vars.example .dev.vars   # worker secrets
 cp .env.example .env             # client config
 bun dev
@@ -29,6 +30,7 @@ Outside Discord the app signs you in as a mock player, so you can play in severa
 | --------------- | ------------------------------------------------------------------------- |
 | `bun run test`  | Rules unit tests, plus Worker/Durable Object tests in the Workers runtime |
 | `bun run check` | Type-check client, worker and tests                                       |
+| `bun fmt`       | Format everything                                                         |
 | `bun run types` | Regenerate Worker types after changing `wrangler.jsonc` or `.dev.vars`    |
 
 ### Running inside Discord

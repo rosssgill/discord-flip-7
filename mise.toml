@@ -1,3 +1,4 @@
 [tools]
 node = "lts"
 bun = "latest"
+prek = "latest"

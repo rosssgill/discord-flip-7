@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: local
+    hooks:
+      - id: format
+        name: format
+        entry: bun fmt
+        language: system
+        files: \.(ts|svelte|css|html|jsonc?|md|ya?ml)$
+      - id: check
+        name: type-check
+        entry: bun run check
+        language: system
+        pass_filenames: false
+        files: \.(ts|svelte)$|^tsconfig
+      - id: test
+        name: test
+        entry: bun run test
+        language: system
+        pass_filenames: false
+        files: \.(ts|svelte)$|^(wrangler\.jsonc|vitest\.config\.ts)$
