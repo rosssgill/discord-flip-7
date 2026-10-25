@@ -20,7 +20,7 @@
   } = $props();
 
   const detail = $derived.by(() => {
-    if (player.flip7) return "Flip 7!";
+    if (player.draw7) return "Draw 7!";
     if (player.status === "busted") return "Bust";
     if (player.status === "frozen") return "❄ Frozen";
     const points = `+${player.lastRoundScore ?? roundScore(player.numbers, player.modifiers, false)}`;

@@ -20,10 +20,10 @@
 
   const cards = $derived([...player.numbers, ...player.modifiers, ...(player.secondChance ? [player.secondChance] : [])]);
   const points = $derived(
-    player.status === "busted" ? 0 : roundScore(player.numbers, player.modifiers, player.flip7),
+    player.status === "busted" ? 0 : roundScore(player.numbers, player.modifiers, player.draw7),
   );
   const statusLabel = $derived(
-    player.flip7 ? "Flip 7!" : { active: "", stayed: "Stayed", frozen: "Frozen", busted: "Bust" }[player.status],
+    player.draw7 ? "Draw 7!" : { active: "", stayed: "Stayed", frozen: "Frozen", busted: "Bust" }[player.status],
   );
 </script>
 

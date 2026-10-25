@@ -8,7 +8,7 @@
   const name = (id: string) => (id === you.id ? "You" : (game.players.find((p) => p.id === id)?.name ?? "?"));
   const me = $derived(game.players.find((p) => p.id === you.id));
   const roundNote = $derived(
-    !me ? "" : me.status === "busted" ? "bust" : `+${roundScore(me.numbers, me.modifiers, me.flip7)}`,
+    !me ? "" : me.status === "busted" ? "bust" : `+${roundScore(me.numbers, me.modifiers, me.draw7)}`,
   );
   const headline = $derived.by(() => {
     if (game.phase === "lobby") return `${game.players.length} in the lobby`;
@@ -20,7 +20,7 @@
 </script>
 
 <div class="compact" class:alert={game.waitingOn === you.id}>
-  <span class="title">Flip 7</span>
+  <span class="title">Draw 7</span>
   <strong class="headline">{headline}</strong>
   {#if me && game.phase !== "lobby"}
     <span class="muted">{me.total} pts{game.phase === "playing" ? ` · this round ${roundNote}` : ""}</span>

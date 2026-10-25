@@ -195,7 +195,7 @@ const SOUNDS: Record<Sound, (ac: AudioContext, at: number) => void> = {
     tone(ac, at, { freq: 320, to: 70, type: "sawtooth", duration: 0.5, volume: 0.12 });
     noise(ac, at, { duration: 0.25, volume: 0.25, filter: "lowpass", freq: 400 });
   },
-  flip7(ac, at) {
+  draw7(ac, at) {
     [523, 659, 784, 1047].forEach((freq, i) =>
       tone(ac, at + i * 0.1, { freq, type: "triangle", duration: i === 3 ? 0.7 : 0.18, volume: 0.15 }),
     );

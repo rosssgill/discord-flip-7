@@ -20,7 +20,7 @@ export interface Player {
   numbers: Card[];
   modifiers: Card[];
   secondChance: Card | null;
-  flip7: boolean;
+  draw7: boolean;
   lastRoundScore: number | null;
   /** Decisions in a row the server made for them after a timeout. */
   missedTurns: number;
@@ -223,7 +223,7 @@ function newPlayer(id: string, name: string, avatar: string | null): Player {
     numbers: [],
     modifiers: [],
     secondChance: null,
-    flip7: false,
+    draw7: false,
     lastRoundScore: null,
     missedTurns: 0,
   };
@@ -232,7 +232,7 @@ function newPlayer(id: string, name: string, avatar: string | null): Player {
 function startRound(s: GameState, rng: Rng) {
   for (const p of s.players) {
     s.discard.push(...p.numbers, ...p.modifiers, ...(p.secondChance ? [p.secondChance] : []));
-    Object.assign(p, { status: "active", numbers: [], modifiers: [], secondChance: null, flip7: false, lastRoundScore: null });
+    Object.assign(p, { status: "active", numbers: [], modifiers: [], secondChance: null, draw7: false, lastRoundScore: null });
   }
   s.round += 1;
   if (s.round > 1) s.dealer = (s.dealer + 1) % s.players.length;
@@ -316,8 +316,8 @@ function receive(s: GameState, p: Player, card: Card, inFlipThree: boolean) {
     p.numbers.push(card);
     log(s, `${p.name} flips ${card.value}`);
     if (p.numbers.length === 7) {
-      p.flip7 = true;
-      log(s, `${p.name} flips 7!`);
+      p.draw7 = true;
+      log(s, `${p.name} draws 7!`);
       endRound(s);
     }
     return;
@@ -465,7 +465,7 @@ function endRound(s: GameState) {
   s.phase = "roundOver";
 
   for (const p of s.players) {
-    p.lastRoundScore = p.status === "busted" ? 0 : roundScore(p.numbers, p.modifiers, p.flip7);
+    p.lastRoundScore = p.status === "busted" ? 0 : roundScore(p.numbers, p.modifiers, p.draw7);
     p.total += p.lastRoundScore;
   }
   log(s, `Round ${s.round} over: ${s.players.map((p) => `${p.name} +${p.lastRoundScore}`).join(", ")}`);

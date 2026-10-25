@@ -75,11 +75,11 @@ describe("soundCues", () => {
     expect(cues(s, after)).toContainEqual({ sound: "victory", delayMs: 0 });
   });
 
-  it("plays the Flip 7 fanfare", () => {
+  it("plays the Draw 7 fanfare", () => {
     let s = play(lobby([1, 9, 2, 3, 4, 5, 6, 7].map(num)), "A", { type: "nextRound" });
     s = play(play(s, "A", { type: "hit" }), "B", { type: "stay" });
     for (let i = 0; i < 4; i++) s = play(s, "A", { type: "hit" });
     const after = play(s, "A", { type: "hit" });
-    expect(cues(s, after).map((c) => c.sound)).toContain("flip7");
+    expect(cues(s, after).map((c) => c.sound)).toContain("draw7");
   });
 });

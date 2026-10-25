@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "flip-7",
+      "name": "draw-7",
       "dependencies": {
         "@discord/embedded-app-sdk": "^2.5.0",
         "zod": "^4.6.7",

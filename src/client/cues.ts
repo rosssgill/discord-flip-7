@@ -1,10 +1,10 @@
 import type { GameView } from "../game/view";
 import { DRAW_DURATION_MS, drawDelay } from "./timing";
 
-export type Sound = "flip" | "freeze" | "bust" | "flip7" | "yourTurn" | "victory" | "stay" | "tick" | "hover" | "click";
+export type Sound = "flip" | "freeze" | "bust" | "draw7" | "yourTurn" | "victory" | "stay" | "tick" | "hover" | "click";
 
-// Lets the Flip 7 fanfare finish before a game-winning victory tune starts.
-const FLIP_7_FANFARE_MS = 900;
+// Lets the Draw 7 fanfare finish before a game-winning victory tune starts.
+const DRAW_7_FANFARE_MS = 900;
 
 export interface Cue {
   sound: Sound;
@@ -31,11 +31,11 @@ export function soundCues(prev: GameView | null, next: GameView, youId: string):
       cues.push({ sound: "bust", delayMs: order >= 0 ? landsAt(order) : 0 });
     }
     if (player.status === "stayed" && before.status !== "stayed") cues.push({ sound: "stay", delayMs: 0 });
-    if (player.flip7 && !before.flip7) cues.push({ sound: "flip7", delayMs: afterDraws });
+    if (player.draw7 && !before.draw7) cues.push({ sound: "draw7", delayMs: afterDraws });
   }
 
   if (next.phase === "gameOver" && prev.phase !== "gameOver") {
-    const afterFanfare = cues.some((c) => c.sound === "flip7") ? FLIP_7_FANFARE_MS : 0;
+    const afterFanfare = cues.some((c) => c.sound === "draw7") ? DRAW_7_FANFARE_MS : 0;
     cues.push({ sound: "victory", delayMs: afterDraws + afterFanfare });
   }
 

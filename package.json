@@ -1,5 +1,5 @@
 {
-  "name": "flip-7",
+  "name": "draw-7",
   "private": true,
   "type": "module",
   "trustedDependencies": ["esbuild", "workerd"],

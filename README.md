@@ -1,4 +1,4 @@
-# Flip 7 for Discord
+# Draw 7 for Discord
 
 A multiplayer push-your-luck card game that runs inside Discord as an [Activity](https://discord.com/developers/docs/activities/overview). Flip cards to reach 200 points, but a duplicate number busts your round.
 

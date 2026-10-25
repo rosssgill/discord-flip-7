@@ -33,7 +33,7 @@ const p = (s: GameState, id: string) => s.players.find((x) => x.id === id)!;
 const values = (cards: Card[]) => cards.map((c) => (c.kind === "number" ? c.value : c));
 
 describe("deck", () => {
-  it("has 94 cards with the Flip 7 distribution", () => {
+  it("has 94 cards with the Draw 7 distribution", () => {
     const deck = buildDeck();
     expect(deck).toHaveLength(94);
     expect(new Set(deck.map((c) => c.id)).size).toBe(94);
@@ -108,14 +108,14 @@ describe("dealing and turns", () => {
   });
 });
 
-describe("Flip 7", () => {
+describe("Draw 7", () => {
   it("ends the round immediately with a 15 point bonus", () => {
     let s = game(2, [num(1), num(9), mod("+4"), num(2), num(3), num(4), num(5), num(6), num(7)]);
     s = play(s, "A", { type: "hit" });
     s = play(s, "B", { type: "stay" });
     for (let i = 0; i < 6; i++) s = play(s, "A", { type: "hit" });
     expect(s.phase).toBe("roundOver");
-    expect(p(s, "A").flip7).toBe(true);
+    expect(p(s, "A").draw7).toBe(true);
     expect(p(s, "A").total).toBe(28 + 4 + 15);
     expect(p(s, "B").total).toBe(9);
   });

@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "flip-7",
+  "name": "draw-7",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-10-15",
   "assets": {

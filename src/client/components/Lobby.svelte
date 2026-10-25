@@ -26,7 +26,7 @@
 
 <div class="lobby">
   <header>
-    <h1>Flip 7</h1>
+    <h1><img class="logo" src="/logo.jpg" alt="Draw 7" /></h1>
     <div class="tools">
       <SpectatorBar {spectators} />
       <AudioMenu bind:settings={audio} />
@@ -70,11 +70,19 @@
     margin: 2rem auto;
   }
   header {
+    position: relative;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: center;
+  }
+  /* The logo's own background matches --bg, so its padding blends into the page. */
+  .logo {
+    display: block;
+    width: min(16rem, 70vw);
   }
   .tools {
+    position: absolute;
+    top: 0;
+    right: 0;
     display: flex;
     align-items: center;
     gap: 0.4rem;
