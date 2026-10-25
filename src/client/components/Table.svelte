@@ -14,6 +14,7 @@
   import { drawFromDeck, toDiscard } from "../transitions";
   import Card from "./Card.svelte";
   import AudioMenu from "./AudioMenu.svelte";
+  import RulesDialog from "./RulesDialog.svelte";
   import Piles from "./Piles.svelte";
   import PlayerArea from "./PlayerArea.svelte";
   import PlayerChip from "./PlayerChip.svelte";
@@ -131,6 +132,7 @@
           </AlertDialog.Content>
         </AlertDialog.Root>
       {/if}
+      <RulesDialog />
       <AudioMenu bind:settings={audio} />
     </div>
   </header>
