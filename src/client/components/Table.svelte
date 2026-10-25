@@ -1,5 +1,7 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Button } from "$lib/components/ui/button";
   import type { GameView } from "../../game/view";
   import {
     type ClientMessage,
@@ -36,23 +38,10 @@
     timerDeadline: number | null;
   } = $props();
 
-  // Leaving mid-game forfeits, so it takes a second tap to confirm.
-  const CONFIRM_MS = 4000;
-  let confirmingLeave = $state(false);
-  let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+  // Leaving mid-game forfeits, so it asks for confirmation first.
   const midGame = $derived(
     game.phase === "playing" || game.phase === "roundOver",
   );
-  function leave() {
-    if (midGame && !confirmingLeave) {
-      confirmingLeave = true;
-      confirmTimer = setTimeout(() => (confirmingLeave = false), CONFIRM_MS);
-      return;
-    }
-    clearTimeout(confirmTimer);
-    confirmingLeave = false;
-    send({ type: "leave" });
-  }
 
   const name = (id: string) =>
     game.players.find((p) => p.id === id)?.name ?? "?";
@@ -111,29 +100,46 @@
   />
 {/snippet}
 
-<div class="table">
-  <header class="bar">
+<div class="mx-auto flex max-w-6xl flex-col gap-3">
+  <header class="flex items-center justify-between font-bold">
     <span>Round {game.round}</span>
-    <div class="tools">
+    <div class="flex items-center gap-1.5">
       <SpectatorBar {spectators} />
-      {#if seated && game.phase !== "gameOver"}
-        <button
-          class="leave"
-          class:confirming={confirmingLeave}
-          onclick={leave}
-        >
-          {confirmingLeave ? "Forfeit" : "Leave"}
-        </button>
+      {#if seated && midGame}
+        <AlertDialog.Root>
+          <AlertDialog.Trigger>
+            {#snippet child({ props })}
+              <Button {...props} variant="outline" size="sm">Leave</Button>
+            {/snippet}
+          </AlertDialog.Trigger>
+          <AlertDialog.Content>
+            <AlertDialog.Header>
+              <AlertDialog.Title>Leave the game?</AlertDialog.Title>
+              <AlertDialog.Description>
+                Leaving mid-game forfeits it.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer>
+              <AlertDialog.Cancel>Keep playing</AlertDialog.Cancel>
+              <AlertDialog.Action
+                variant="destructive"
+                onclick={() => send({ type: "leave" })}
+              >
+                Forfeit
+              </AlertDialog.Action>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
       {/if}
       <AudioMenu bind:settings={audio} />
     </div>
   </header>
 
-  <div class="piles" class:small={narrow}>
+  <div class:small={narrow}>
     <Piles deckCount={game.deckCount} discardCount={game.discardCount}>
       <!-- Action cards waiting on a target choice belong to no one yet, so they sit between the piles. -->
       {#if game.pending}
-        <figure class="in-play">
+        <figure class="in-play grid justify-items-center gap-1.5">
           {#key game.pending.card.id}
             <div
               class="slot"
@@ -146,7 +152,7 @@
               <Card card={game.pending.card} />
             </div>
           {/key}
-          <figcaption>
+          <figcaption class="text-primary text-xs whitespace-nowrap">
             {game.pending.chooser === you.id
               ? "You"
               : name(game.pending.chooser)} drew {cardLabel(game.pending.card)}
@@ -163,7 +169,7 @@
       {/key}
     {/if}
     {#if others.length}
-      <div class="strip">
+      <div class="flex flex-wrap justify-center gap-1">
         {#each others as player (player.id)}
           <PlayerChip
             {player}
@@ -180,14 +186,17 @@
       {@render area(me)}
     {/if}
   {:else}
-    <div class="players">
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(22rem,1fr))] gap-2.5">
       {#each game.players as player (player.id)}
         {@render area(player)}
       {/each}
     </div>
   {/if}
 
-  <footer class="controls">
+  <!-- Stays on screen when the players list is taller than a phone. -->
+  <footer
+    class="bg-background sticky bottom-(--safe-bottom) z-3 flex min-h-11 flex-wrap items-center gap-2 py-2"
+  >
     {#if timerDeadline && game.waitingOn}
       <TurnTimer
         deadline={timerDeadline}
@@ -207,118 +216,52 @@
     {/if}
     {#if game.phase === "gameOver"}
       <strong>{game.winners.map(name).join(" & ")} wins!</strong>
-      <button class="primary" onclick={() => send({ type: "newGame" })}
-        >New game</button
-      >
+      <Button onclick={() => send({ type: "newGame" })}>New game</Button>
     {:else if game.phase === "roundOver"}
       <strong>Round {game.round} over</strong>
-      {#if seated}<button
-          class="primary"
-          onclick={() => send({ type: "nextRound" })}>Next round</button
-        >{/if}
+      {#if seated}
+        <Button onclick={() => send({ type: "nextRound" })}>Next round</Button>
+      {/if}
     {:else if myChoice}
       <strong>{prompts[myChoice.kind]}</strong>
       {#each myChoice.options as option (option)}
-        <button onclick={() => send({ type: "choose", target: option })}>
+        <Button
+          variant="outline"
+          onclick={() => send({ type: "choose", target: option })}
+        >
           {option === you.id ? "Me" : name(option)}
-        </button>
+        </Button>
       {/each}
     {:else if myTurn}
-      <button class="primary" onclick={() => send({ type: "hit" })}>Hit</button>
-      <button onclick={() => send({ type: "stay" })}>Stay</button>
+      <Button onclick={() => send({ type: "hit" })}>Hit</Button>
+      <Button variant="outline" onclick={() => send({ type: "stay" })}
+        >Stay</Button
+      >
     {:else if game.waitingOn}
-      <span class="muted">Waiting for {name(game.waitingOn)}…</span>
+      <span class="text-muted-foreground"
+        >Waiting for {name(game.waitingOn)}…</span
+      >
     {/if}
   </footer>
 
-  <ol class="log">
+  <ol class="text-muted-foreground text-sm">
     {#each game.log.slice(narrow ? -2 : -6) as line}
-      <li>{line}</li>
+      <li class="last:text-foreground">{line}</li>
     {/each}
   </ol>
 </div>
 
 <style>
-  .table {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-width: 72rem;
-    margin: 0 auto;
-  }
-  .tools {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .leave {
-    padding: 0.25rem 0.7rem;
-    font-size: 0.8rem;
-  }
-  .leave.confirming {
-    border-color: var(--danger);
-    background: var(--danger);
-    color: white;
-  }
-  .bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 700;
-  }
   .in-play {
-    margin: 0;
-    display: grid;
-    justify-items: center;
-    gap: 0.35rem;
     perspective: 800px;
-  }
-  figcaption {
-    font-size: 0.8rem;
-    color: var(--accent);
-    white-space: nowrap;
   }
   .slot {
     position: relative;
     z-index: 1;
     transform-style: preserve-3d;
   }
-  .players {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
-    gap: 0.6rem;
-  }
   /* zoom (unlike transform) also shrinks layout space, and transitions read the zoomed positions. */
-  .piles.small {
+  .small {
     zoom: 0.72;
-  }
-  .strip {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.3rem;
-  }
-  /* Stays on screen when the players list is taller than a phone. */
-  .controls {
-    position: sticky;
-    bottom: var(--safe-bottom);
-    z-index: 3;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    min-height: 2.75rem;
-    padding: 0.5rem 0;
-    background: var(--bg);
-  }
-  .log {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    font-size: 0.85rem;
-    color: var(--muted);
-  }
-  .log li:last-child {
-    color: inherit;
   }
 </style>

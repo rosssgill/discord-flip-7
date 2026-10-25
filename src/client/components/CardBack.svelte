@@ -12,7 +12,7 @@
     height: 4.2rem;
     box-sizing: border-box;
     border-radius: 0.5rem;
-    border: 3px solid var(--card-bg);
+    border: 3px solid var(--card-face);
     background: repeating-linear-gradient(
       45deg,
       var(--action) 0 6px,
@@ -26,7 +26,7 @@
     width: 1.6rem;
     height: 1.6rem;
     border-radius: 50%;
-    background: var(--card-bg);
+    background: var(--card-face);
     color: var(--action);
     font-weight: 900;
   }

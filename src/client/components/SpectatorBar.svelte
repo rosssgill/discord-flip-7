@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Badge } from "$lib/components/ui/badge";
+  import * as Tooltip from "$lib/components/ui/tooltip";
   import type { User } from "../../shared/protocol";
   import Avatar from "./Avatar.svelte";
 
@@ -10,51 +12,26 @@
 </script>
 
 {#if spectators.length}
-  <div
-    class="spectators"
-    title="Watching: {spectators.map((s) => s.name).join(', ')}"
-  >
-    <div class="stack">
-      {#each shown as user (user.id)}
-        <div class="face">
-          <Avatar name={user.name} src={user.avatar} size={24} />
-        </div>
-      {/each}
-    </div>
-    {#if hidden > 0}<span class="more">+{hidden}</span>{/if}
-    <span class="sr-only">{spectators.length} watching</span>
-  </div>
+  <Tooltip.Root>
+    <Tooltip.Trigger>
+      {#snippet child({ props })}
+        <Badge {...props} variant="secondary" class="h-7 gap-1.5 pl-0.5">
+          <span class="flex -space-x-2">
+            {#each shown as user (user.id)}
+              <span class="ring-secondary rounded-full ring-2">
+                <Avatar name={user.name} src={user.avatar} size={24} />
+              </span>
+            {/each}
+          </span>
+          {#if hidden > 0}
+            <span class="text-muted-foreground font-bold">+{hidden}</span>
+          {/if}
+          <span class="sr-only">{spectators.length} watching</span>
+        </Badge>
+      {/snippet}
+    </Tooltip.Trigger>
+    <Tooltip.Content>
+      Watching: {spectators.map((s) => s.name).join(", ")}
+    </Tooltip.Content>
+  </Tooltip.Root>
 {/if}
-
-<style>
-  .spectators {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.15rem 0.5rem 0.15rem 0.2rem;
-    border-radius: 1rem;
-    background: var(--panel);
-    font-size: 0.75rem;
-  }
-  .stack {
-    display: flex;
-  }
-  .face + .face {
-    margin-left: -0.45rem;
-  }
-  .face {
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px var(--panel);
-  }
-  .more {
-    color: var(--muted);
-    font-weight: 700;
-  }
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-</style>

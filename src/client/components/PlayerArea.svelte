@@ -1,5 +1,8 @@
 <script lang="ts">
   import { flip } from "svelte/animate";
+  import { Badge, type BadgeVariant } from "$lib/components/ui/badge";
+  import * as CardUI from "$lib/components/ui/card";
+  import { cn } from "$lib/utils";
   import type { Player } from "../../game/engine";
   import { roundScore } from "../../game/scoring";
   import { drawFromDeck, toDiscard } from "../transitions";
@@ -44,39 +47,72 @@
           player.status
         ],
   );
+  const statusVariant = $derived<BadgeVariant>(
+    player.draw7
+      ? "default"
+      : player.status === "busted"
+        ? "destructive"
+        : player.status === "frozen"
+          ? "outline"
+          : "secondary",
+  );
 </script>
 
-<section
-  class="player {player.status}"
-  class:current={isCurrent}
-  class:you={isYou}
+<!-- Visible overflow lets drawn cards fly in from the deck and snowflakes burst past the edge. -->
+<CardUI.Root
+  size="sm"
+  class={cn("relative overflow-visible", isCurrent && "ring-primary ring-2")}
 >
-  <div class="who" class:offline={!online}>
-    <Avatar name={player.name} src={player.avatar} {streak} offline={!online} />
-    <span class="name">{isYou ? "You" : player.name}</span>
-    {#if statusLabel}<span class="status">{statusLabel}</span>{/if}
-  </div>
-
-  <div class="cards">
-    {#each cards as card (card.id)}
-      <div
-        class="slot"
-        animate:flip={{ duration: 250 }}
-        in:drawFromDeck|global={{
-          order: drawn.indexOf(card.id),
-          count: drawn.length,
-        }}
-        out:toDiscard
+  <CardUI.Content class="grid grid-cols-[4.5rem_1fr_auto] items-center gap-3">
+    <div class="flex min-w-0 flex-col items-center gap-1">
+      <Avatar
+        name={player.name}
+        src={player.avatar}
+        {streak}
+        offline={!online}
+      />
+      <span
+        class={cn(
+          "max-w-full truncate text-xs font-bold",
+          !online && "italic opacity-60",
+        )}>{isYou ? "You" : player.name}</span
       >
-        <Card {card} />
-      </div>
-    {/each}
-  </div>
+      {#if statusLabel}
+        <Badge
+          variant={statusVariant}
+          class={cn(
+            "uppercase",
+            player.status === "frozen" && "border-ice text-ice",
+          )}>{statusLabel}</Badge
+        >
+      {/if}
+    </div>
 
-  <div class="score">
-    <span class="points">+{player.lastRoundScore ?? points}</span>
-    <span class="total">{player.total}</span>
-  </div>
+    <div
+      class={cn("cards flex min-h-[4.2rem] flex-wrap gap-1.5", player.status)}
+    >
+      {#each cards as card (card.id)}
+        <div
+          class="slot"
+          animate:flip={{ duration: 250 }}
+          in:drawFromDeck|global={{
+            order: drawn.indexOf(card.id),
+            count: drawn.length,
+          }}
+          out:toDiscard
+        >
+          <Card {card} />
+        </div>
+      {/each}
+    </div>
+
+    <div class="flex flex-col items-end">
+      <span class="text-muted-foreground"
+        >+{player.lastRoundScore ?? points}</span
+      >
+      <span class="text-xl font-extrabold">{player.total}</span>
+    </div>
+  </CardUI.Content>
 
   {#if player.status === "frozen"}
     <div class="ice" aria-hidden="true">
@@ -89,74 +125,14 @@
       {/each}
     </div>
   {/if}
-</section>
+</CardUI.Root>
 
 <style>
-  .player {
-    position: relative;
-    display: grid;
-    grid-template-columns: 4.5rem 1fr auto;
-    align-items: center;
-    gap: 0.75rem;
-    background: var(--panel);
-    border: 2px solid transparent;
-    border-radius: 0.75rem;
-    padding: 0.6rem 0.75rem;
-  }
-  .current {
-    border-color: var(--accent);
-  }
   /* Busting dims only the cards; the avatar is reserved for connection state. */
-  .busted .cards {
+  .cards.busted {
     opacity: 0.45;
   }
-  .busted .status {
-    color: var(--danger);
-  }
-  .who {
-    display: grid;
-    justify-items: center;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-  .name {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.8rem;
-    font-weight: 700;
-  }
-  .offline .name {
-    font-style: italic;
-    opacity: 0.6;
-  }
-  .status {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-  }
-  .frozen .status {
-    color: var(--ice);
-  }
-  .score {
-    display: grid;
-    justify-items: end;
-  }
-  .points {
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-  .total {
-    font-weight: 800;
-    font-size: 1.2rem;
-  }
   .cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    min-height: 4.2rem;
     perspective: 800px;
   }
   .slot {
@@ -164,7 +140,7 @@
     z-index: 1;
     transform-style: preserve-3d;
   }
-  .frozen .cards {
+  .cards.frozen {
     filter: saturate(0.4) brightness(1.08) drop-shadow(0 0 6px var(--ice));
     transition: filter 0.6s;
   }

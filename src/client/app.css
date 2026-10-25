@@ -1,14 +1,49 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn-svelte/tailwind.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --bg: #152535;
-  --panel: #23384d;
-  --card-bg: #fbf8f1;
-  --text: #f2efe6;
-  --muted: #b4c0cc;
-  --accent: #f2c14e;
-  --modifier: #2a7fd4;
-  --action: #c2410c;
-  --ice: #a8dcff;
-  --danger: #e5484d;
+  color-scheme: dark;
+  --background: oklch(0.258 0.037 249.4);
+  --foreground: oklch(0.952 0.012 91.5);
+  --card: oklch(0.333 0.046 249.4);
+  --card-foreground: oklch(0.952 0.012 91.5);
+  --popover: oklch(0.333 0.046 249.4);
+  --popover-foreground: oklch(0.952 0.012 91.5);
+  --primary: oklch(0.834 0.141 85.4);
+  --primary-foreground: oklch(0.231 0 0);
+  --secondary: oklch(0.333 0.046 249.4);
+  --secondary-foreground: oklch(0.952 0.012 91.5);
+  --muted: oklch(0.423 0.038 247.4);
+  --muted-foreground: oklch(0.802 0.022 248.1);
+  --accent: oklch(0.423 0.038 247.4);
+  --accent-foreground: oklch(0.952 0.012 91.5);
+  --destructive: oklch(0.626 0.193 23);
+  --border: oklch(1 0 0 / 15%);
+  --input: oklch(1 0 0 / 20%);
+  --ring: oklch(0.834 0.141 85.4);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.333 0.046 249.4);
+  --sidebar-foreground: oklch(0.952 0.012 91.5);
+  --sidebar-primary: oklch(0.834 0.141 85.4);
+  --sidebar-primary-foreground: oklch(0.231 0 0);
+  --sidebar-accent: oklch(0.423 0.038 247.4);
+  --sidebar-accent-foreground: oklch(0.952 0.012 91.5);
+  --sidebar-border: oklch(1 0 0 / 15%);
+  --sidebar-ring: oklch(0.834 0.141 85.4);
+  /* Game colours outside the shadcn palette. */
+  --card-face: oklch(0.98 0.01 87.5);
+  --modifier: oklch(0.59 0.152 252.2);
+  --action: oklch(0.553 0.174 38.4);
+  --ice: oklch(0.87 0.072 238.1);
   /* Discord sets these on mobile around notches and gesture bars; env() covers testing outside Discord. */
   --safe-top: var(--discord-safe-area-inset-top, env(safe-area-inset-top, 0px));
   --safe-bottom: var(
@@ -23,83 +58,66 @@
     --discord-safe-area-inset-right,
     env(safe-area-inset-right, 0px)
   );
-  color-scheme: dark;
-  font-family: system-ui, sans-serif;
 }
 
-body {
-  margin: 0;
-  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-  background: var(--bg);
-  color: var(--text);
+@theme inline {
+  --color-ice: var(--ice);
+  --font-sans: 'Inter Variable', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-h1,
-h2 {
-  margin: 0 0 0.5rem;
-}
-
-.muted {
-  color: var(--muted);
-}
-
-button {
-  font: inherit;
-  font-weight: 600;
-  padding: 0.5rem 1.1rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--muted);
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  transition:
-    transform 0.12s ease,
-    filter 0.12s ease,
-    box-shadow 0.12s ease;
-}
-
-/* Hover only on devices with a real pointer, so taps on phones don't leave buttons stuck highlighted. */
-@media (hover: hover) {
-  button:not(:disabled):hover {
-    /* A background image tints the button without replacing each component's own background colour. */
-    background-image: linear-gradient(
-      rgb(255 255 255 / 0.1),
-      rgb(255 255 255 / 0.1)
-    );
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgb(0 0 0 / 0.3);
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-button:not(:disabled):active {
-  transform: translateY(1px) scale(0.96);
-  filter: brightness(0.92);
-  box-shadow: none;
-}
-
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #1d1d1d;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  button {
-    transition: none;
+  body {
+    @apply bg-background text-foreground;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom)
+      var(--safe-left);
   }
-  button:not(:disabled):hover,
-  button:not(:disabled):active {
-    transform: none;
+  /* Tailwind's preflight drops the pointer cursor from buttons. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  html {
+    @apply font-sans;
+  }
 }

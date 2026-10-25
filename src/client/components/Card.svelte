@@ -37,7 +37,7 @@
     height: 4.2rem;
     box-sizing: border-box;
     border-radius: 0.5rem;
-    background: var(--card-bg);
+    background: var(--card-face);
     border: 2px solid hsl(var(--hue) 60% 50%);
     color: hsl(var(--hue) 60% 35%);
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.3);
