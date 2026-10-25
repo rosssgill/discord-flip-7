@@ -1,4 +1,7 @@
 <script lang="ts">
+  import TimerIcon from "@lucide/svelte/icons/timer";
+  import { Progress } from "$lib/components/ui/progress";
+  import { cn } from "$lib/utils";
   import { playCues } from "../sounds";
 
   let {
@@ -31,46 +34,25 @@
 </script>
 
 <div
-  class="timer"
-  class:urgent
+  class={cn("flex w-full flex-col gap-1", urgent && "urgent")}
   role="timer"
   aria-label="{label}: {seconds} seconds left"
 >
-  <div class="track">
-    <div class="fill" style:width="{(msLeft / total) * 100}%"></div>
-  </div>
-  <span class="text">⏱ {label} · {seconds}s</span>
+  <Progress
+    value={msLeft}
+    max={total}
+    class={cn(urgent && "*:data-[slot=progress-indicator]:bg-destructive")}
+  />
+  <span
+    class={cn(
+      "text-muted-foreground flex items-center gap-1 text-xs",
+      urgent && "text-destructive font-bold",
+    )}><TimerIcon class="size-3.5" /> {label} · {seconds}s</span
+  >
 </div>
 
 <style>
-  .timer {
-    display: grid;
-    gap: 0.25rem;
-    width: 100%;
-  }
-  .track {
-    height: 0.35rem;
-    border-radius: 1rem;
-    background: var(--panel);
-    overflow: hidden;
-  }
-  .fill {
-    height: 100%;
-    background: var(--accent);
-    transition: width 0.1s linear;
-  }
-  .text {
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
-  .urgent .fill {
-    background: var(--danger);
-  }
-  .urgent .text {
-    color: var(--danger);
-    font-weight: 700;
-  }
-  .urgent.timer {
+  .urgent {
     animation: pulse 1s ease-in-out infinite;
   }
   @keyframes pulse {
@@ -79,7 +61,7 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .urgent.timer {
+    .urgent {
       animation: none;
     }
   }

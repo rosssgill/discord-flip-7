@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cn } from "$lib/utils";
   import type { GameView } from "../../game/view";
   import { roundScore } from "../../game/scoring";
   import type { User } from "../../shared/protocol";
@@ -29,42 +30,21 @@
   });
 </script>
 
-<div class="compact" class:alert={game.waitingOn === you.id}>
-  <span class="title">Draw 7</span>
-  <strong class="headline">{headline}</strong>
+<div
+  class={cn(
+    "flex h-screen flex-col justify-center gap-1 overflow-hidden px-3.5 whitespace-nowrap",
+    game.waitingOn === you.id && "ring-primary ring-3 ring-inset",
+  )}
+>
+  <span class="text-muted-foreground text-xs tracking-widest uppercase"
+    >Draw 7</span
+  >
+  <strong class="truncate text-xl">{headline}</strong>
   {#if me && game.phase !== "lobby"}
-    <span class="muted"
+    <span class="text-muted-foreground"
       >{me.total} pts{game.phase === "playing"
         ? ` · this round ${roundNote}`
         : ""}</span
     >
   {/if}
 </div>
-
-<style>
-  .compact {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.2rem;
-    height: 100vh;
-    padding: 0 0.9rem;
-    box-sizing: border-box;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .alert {
-    box-shadow: inset 0 0 0 3px var(--accent);
-  }
-  .title {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-  }
-  .headline {
-    font-size: 1.3rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-</style>

@@ -51,7 +51,7 @@
   }
   figcaption {
     font-size: 0.8rem;
-    color: var(--muted);
+    color: var(--muted-foreground);
   }
   .stack {
     position: relative;
@@ -70,7 +70,7 @@
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-    border: 2px dashed var(--muted);
+    border: 2px dashed var(--muted-foreground);
     border-radius: 0.5rem;
   }
 </style>

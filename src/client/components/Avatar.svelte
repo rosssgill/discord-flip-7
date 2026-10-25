@@ -1,4 +1,7 @@
 <script lang="ts">
+  import * as Avatar from "$lib/components/ui/avatar";
+  import { cn } from "$lib/utils";
+
   let {
     name,
     src,
@@ -13,34 +16,38 @@
     offline?: boolean;
   } = $props();
 
-  let failed = $state(false);
   // A stable colour per name for the initial, since Activities can't load Discord's default avatars.
   // Multiplying by 137 spreads similar names (e.g. "P1", "P2") far apart on the colour wheel.
   const hue = $derived(
     ([...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0) * 137) %
       360,
   );
+  const dimmed = $derived(offline && "opacity-45 grayscale");
 </script>
 
-<div class="avatar" class:offline style:--size="{size}px">
-  {#if src && !failed}
-    <img
-      {src}
-      alt=""
-      width={size}
-      height={size}
-      onerror={() => (failed = true)}
-    />
-  {:else}
-    <span class="initial" style:--hue={hue} aria-hidden="true">
-      {name.trim().charAt(0).toUpperCase() || "?"}
-    </span>
-  {/if}
-  {#if offline}
-    <span class="disconnected" title="Disconnected" aria-label="Disconnected"
-      >!</span
+<div class="relative" style:--size="{size}px">
+  <Avatar.Root class="size-(--size)">
+    {#if src}
+      <Avatar.Image {src} alt="" class={cn(dimmed)} />
+    {/if}
+    <Avatar.Fallback
+      class={cn(
+        "text-[calc(var(--size)*0.45)] font-extrabold text-white",
+        dimmed,
+      )}
+      style="background: hsl({hue} 45% 45%)"
+      aria-hidden="true"
     >
-  {/if}
+      {name.trim().charAt(0).toUpperCase() || "?"}
+    </Avatar.Fallback>
+    {#if offline}
+      <Avatar.Badge
+        class="bg-destructive ring-card -right-0.5 -bottom-0.5 size-[calc(var(--size)*0.42)]! text-[calc(var(--size)*0.28)] font-black text-white"
+        title="Disconnected"
+        aria-label="Disconnected">!</Avatar.Badge
+      >
+    {/if}
+  </Avatar.Root>
   {#if streak > 0}
     <span
       class="crown"
@@ -54,29 +61,6 @@
 </div>
 
 <style>
-  .avatar {
-    position: relative;
-  }
-  .offline img,
-  .offline .initial {
-    filter: grayscale(1);
-    opacity: 0.45;
-  }
-  .disconnected {
-    position: absolute;
-    right: -0.15rem;
-    bottom: -0.15rem;
-    display: grid;
-    place-items: center;
-    width: calc(var(--size) * 0.42);
-    height: calc(var(--size) * 0.42);
-    border-radius: 50%;
-    border: 2px solid var(--panel);
-    background: var(--danger);
-    color: white;
-    font-size: calc(var(--size) * 0.28);
-    font-weight: 900;
-  }
   .crown {
     position: absolute;
     top: calc(var(--size) * -0.42);
@@ -90,22 +74,6 @@
   .crown sub {
     font-size: 0.45em;
     font-weight: 800;
-    color: var(--accent);
-  }
-  img,
-  .initial {
-    display: block;
-    width: var(--size);
-    height: var(--size);
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .initial {
-    display: grid;
-    place-items: center;
-    background: hsl(var(--hue) 45% 45%);
-    color: white;
-    font-weight: 800;
-    font-size: calc(var(--size) * 0.45);
+    color: var(--primary);
   }
 </style>
